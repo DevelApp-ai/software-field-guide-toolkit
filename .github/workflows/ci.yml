@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build, test, pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - name: Restore
+        run: dotnet restore Sfg.Toolkit.sln
+
+      - name: Build
+        run: dotnet build Sfg.Toolkit.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Sfg.Toolkit.sln -c Release --no-build
+
+      - name: Pack tool
+        run: dotnet pack src/sfg -c Release -o packages --no-build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages/*.nupkg
+          if-no-files-found: error
+
+  demo:
+    name: demo on ErpLight and RuntimePluggableClassFactory
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      - name: Fetch example codebases
+        run: |
+          curl -sL https://codeload.github.com/DevelApp-ai/ErpLight/tar.gz/refs/heads/main | tar xz
+          curl -sL https://codeload.github.com/DevelApp-ai/RuntimePluggableClassFactory/tar.gz/refs/heads/main | tar xz
+
+      - name: Run context-map on both examples
+        run: |
+          ./.tools/sfg context-map ErpLight-main --out demo/erplight/context-map
+          ./.tools/sfg context-map RuntimePluggableClassFactory-main --out demo/rpcf/context-map
+
+      - name: Run seam-ledger on both examples
+        run: |
+          ./.tools/sfg seam-ledger ErpLight-main --out demo/erplight/seam-ledger
+          ./.tools/sfg seam-ledger RuntimePluggableClassFactory-main --out demo/rpcf/seam-ledger
+
+      - name: Assert non-empty, cited, deterministic outputs
+        run: |
+          set -eu
+          for repo in erplight rpcf; do
+            for f in demo/$repo/context-map/context-map.drawio \
+                     demo/$repo/context-map/context-map.json \
+                     demo/$repo/context-map/findings.md \
+                     demo/$repo/seam-ledger/seam-ledger.json \
+                     demo/$repo/seam-ledger/collapse-review.md; do
+              test -s "$f" || { echo "MISSING OR EMPTY: $f"; exit 1; }
+            done
+            # every finding must carry a file:line citation
+            grep -q ':[0-9]`' demo/$repo/context-map/findings.md
+            # seam ledger must be non-trivial JSON
+            test "$(jq '.seams | length' demo/$repo/seam-ledger/seam-ledger.json)" -gt 0
+          done
+
+          # determinism: same input, byte-identical artifacts
+          ./.tools/sfg context-map ErpLight-main --out /tmp/rerun
+          cmp demo/erplight/context-map/context-map.drawio /tmp/rerun/context-map.drawio
+          cmp demo/erplight/context-map/context-map.json /tmp/rerun/context-map.json
+          cmp demo/erplight/context-map/findings.md /tmp/rerun/findings.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-demo-output
+          path: demo
+          if-no-files-found: error

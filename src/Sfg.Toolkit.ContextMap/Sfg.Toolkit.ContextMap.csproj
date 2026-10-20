@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Sfg.Toolkit.Core\Sfg.Toolkit.Core.csproj" />
+  </ItemGroup>
+</Project>
