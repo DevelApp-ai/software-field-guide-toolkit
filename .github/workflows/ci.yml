@@ -121,6 +121,8 @@ jobs:
           dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
           ./.tools/sfg --version
 
+      # probes-good/, probes-rerun/, probes-nofilter/, probes-noguard/ are generated
+      # output and never committed; the manifest.json is uploaded as the artifact.
       - name: Generate probes for the good app and run them green
         run: |
           ./.tools/sfg tenant-probes demo/MultitenantApp --out probes-good
