@@ -126,14 +126,14 @@ jobs:
           ./.tools/sfg tenant-probes demo/MultitenantApp --out probes-good
           dotnet test probes-good/TenantProbes.csproj
 
-      - name: Determinism: regenerate, compare byte-identical
+      - name: Determinism - regenerate and compare byte-identical
         run: |
           ./.tools/sfg tenant-probes demo/MultitenantApp --out probes-rerun
           for f in TenantProbes.csproj ProbeHarness.cs CrossTenantReadProbes.cs SaveGuardProbes.cs PoolCheckoutProbes.cs DisabledStateFailClosedProbes.cs manifest.json README.md; do
             cmp "probes-good/$f" "probes-rerun/$f"
           done
 
-      - name: Probes bite: broken query filter must fail loudly
+      - name: Probes bite on the broken query filter
         run: |
           cp -r demo/MultitenantApp /tmp/app-nofilter
           cp demo/broken/AppDbContext.NoFilter.cs /tmp/app-nofilter/AppDbContext.cs
@@ -147,7 +147,7 @@ jobs:
           fi
           grep -q "Failed TenantProbes.CrossTenantReadProbes" nofilter.log
 
-      - name: Probes bite: broken save guard must fail loudly
+      - name: Probes bite on the broken save guard
         run: |
           cp -r demo/MultitenantApp /tmp/app-noguard
           cp demo/broken/AppDbContext.NoGuard.cs /tmp/app-noguard/AppDbContext.cs
