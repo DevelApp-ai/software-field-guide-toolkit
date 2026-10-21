@@ -3,6 +3,7 @@ using Sfg.Toolkit.ContextMap;
 using Sfg.Toolkit.Core.Analysis;
 using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.SeamLedger;
+using Sfg.Toolkit.TenantProbes;
 
 if (args.Length == 0 || args[0] is "--help" or "-h" or "help")
 {
@@ -18,8 +19,10 @@ try
             return RunContextMap(args[1..]);
         case "seam-ledger":
             return RunSeamLedger(args[1..]);
+        case "tenant-probes":
+            return RunTenantProbes(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.1.0");
+            Console.WriteLine("sfg 0.2.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -72,6 +75,27 @@ static int RunSeamLedger(string[] args)
     Console.WriteLine($"seam-ledger: {report.Seams.Count} seams, {report.DueForCollapse} due for collapse, " +
                       $"{report.EvidenceMissing} missing evidence");
     Console.WriteLine($"outputs: {Path.Combine(outDir, "seam-ledger.json")}, {Path.Combine(outDir, "collapse-review.md")}");
+    return 0;
+}
+
+static int RunTenantProbes(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "tenant-probes");
+
+    var config = TenantProbeConfig.Load(configPath);
+    var model = EfModelScanner.Scan(root, config);
+    var suite = TenantProbeGenerator.Generate(root, outDir, model, config);
+
+    foreach (var file in suite.Files)
+    {
+        WriteFile(outDir, file.Path, file.Content);
+    }
+
+    Console.WriteLine($"tenant-probes: DbContext {model.Context.Name} ({model.Context.File}:{model.Context.Line}), " +
+                      $"{suite.Entities.Count} probed entities, {suite.Files.Count} generated files");
+    Console.WriteLine($"outputs: {outDir}/ (run with: dotnet test {Path.Combine(outDir, "TenantProbes.csproj")})");
     return 0;
 }
 
@@ -140,6 +164,11 @@ static void PrintHelp()
           sfg seam-ledger <root> [--config <sfg.json>] [--evidence <file>] [--out <dir>]
               Inventories seams (interfaces, plugin contracts, event hooks) and emits:
               seam-ledger.json, collapse-review.md.
+
+          sfg tenant-probes <root> [--config <tenant-probes.json>] [--out <dir>]
+              Generates a compilable xunit probe suite for tenant isolation (#58):
+              cross-tenant reads, fail-closed saves, pool-checkout leakage,
+              disabled-state fail-closed. Run it with: dotnet test.
 
           sfg --version
 

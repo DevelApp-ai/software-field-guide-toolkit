@@ -99,3 +99,70 @@ jobs:
           name: sfg-demo-output
           path: demo
           if-no-files-found: error
+
+  demo-multitenant:
+    name: tenant probes bite on the multitenant demo
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      - name: Generate probes for the good app and run them green
+        run: |
+          ./.tools/sfg tenant-probes demo/MultitenantApp --out probes-good
+          dotnet test probes-good/TenantProbes.csproj
+
+      - name: Determinism: regenerate, compare byte-identical
+        run: |
+          ./.tools/sfg tenant-probes demo/MultitenantApp --out probes-rerun
+          for f in TenantProbes.csproj ProbeHarness.cs CrossTenantReadProbes.cs SaveGuardProbes.cs PoolCheckoutProbes.cs DisabledStateFailClosedProbes.cs manifest.json README.md; do
+            cmp "probes-good/$f" "probes-rerun/$f"
+          done
+
+      - name: Probes bite: broken query filter must fail loudly
+        run: |
+          cp -r demo/MultitenantApp /tmp/app-nofilter
+          cp demo/broken/AppDbContext.NoFilter.cs /tmp/app-nofilter/AppDbContext.cs
+          ./.tools/sfg tenant-probes /tmp/app-nofilter --out probes-nofilter
+          set +e
+          dotnet test probes-nofilter/TenantProbes.csproj > nofilter.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "PROBES DID NOT BITE: suite stayed green with the query filter removed"; exit 1
+          fi
+          grep -q "Failed TenantProbes.CrossTenantReadProbes" nofilter.log
+
+      - name: Probes bite: broken save guard must fail loudly
+        run: |
+          cp -r demo/MultitenantApp /tmp/app-noguard
+          cp demo/broken/AppDbContext.NoGuard.cs /tmp/app-noguard/AppDbContext.cs
+          ./.tools/sfg tenant-probes /tmp/app-noguard --out probes-noguard
+          set +e
+          dotnet test probes-noguard/TenantProbes.csproj > noguard.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "PROBES DID NOT BITE: suite stayed green with the save guard removed"; exit 1
+          fi
+          grep -q "Failed TenantProbes.SaveGuardProbes" noguard.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-tenant-probes-manifest
+          path: probes-good/manifest.json
+          if-no-files-found: error
