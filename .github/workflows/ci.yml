@@ -168,3 +168,90 @@ jobs:
           name: sfg-tenant-probes-manifest
           path: probes-good/manifest.json
           if-no-files-found: error
+  demo-cockpit:
+    name: cockpit bites on the strangler-fig demo
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # cockpit-good/, cockpit-rerun/, cockpit-unwired/, cockpit-lying/, cockpit-drifted/
+      # are generated output and never committed; the cockpit board is uploaded as the artifact.
+      - name: Generate cockpit for the good app and run the shadow suite green
+        run: |
+          ./.tools/sfg cockpit demo/StranglerApp --out cockpit-good
+          dotnet test cockpit-good/ShadowDiff.csproj
+
+      - name: Assert the tripwire fires with cited evidence
+        run: |
+          set -eu
+          test -s cockpit-good/cockpit.md
+          grep -q "sunset window open" cockpit-good/cockpit.md
+          grep -q "shipping.quote" cockpit-good/cockpit.md
+          grep -q ':[0-9]`' cockpit-good/cockpit.md
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          ./.tools/sfg cockpit demo/StranglerApp --out cockpit-rerun
+          for f in cockpit.md cockpit.json cockpit.drawio ShadowDiff.csproj ShadowDiffHarness.cs RouteShadowProbes.cs Cases.cs manifest.json README.md; do
+            cmp "cockpit-good/$f" "cockpit-rerun/$f"
+          done
+
+      - name: Cockpit rejects the unwired declared route
+        run: |
+          set +e
+          ./.tools/sfg cockpit demo/StranglerApp --config demo/broken/migration.UnwiredRoute.json --out cockpit-unwired --strict > unwired.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "COCKPIT DID NOT BITE: the unwired declared route passed"; exit 1
+          fi
+          grep -q "migration/unwired-route" cockpit-unwired/cockpit.md
+          grep -q "promo.code" cockpit-unwired/cockpit.md
+
+      - name: Cockpit rejects the lying strangled route
+        run: |
+          set +e
+          ./.tools/sfg cockpit demo/StranglerApp --config demo/broken/migration.LyingStrangled.json --out cockpit-lying --strict > lying.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "COCKPIT DID NOT BITE: the lying strangled route passed"; exit 1
+          fi
+          grep -q "migration/strangle-unfinished" cockpit-lying/cockpit.md
+          grep -q "shipping.quote" cockpit-lying/cockpit.md
+
+      - name: Shadow diff bites on the drifted implementation
+        run: |
+          cp -r demo/StranglerApp /tmp/app-drifted
+          cp demo/broken/OrdersSearchService.Drifted.cs /tmp/app-drifted/OrdersSearchService.cs
+          ./.tools/sfg cockpit /tmp/app-drifted --out cockpit-drifted
+          set +e
+          dotnet test cockpit-drifted/ShadowDiff.csproj > drifted.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "SHADOW DID NOT BITE: the drifted implementation stayed green"; exit 1
+          fi
+          grep -q "SHADOW DRIFT" drifted.log
+          grep -q "orders.search" drifted.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-cockpit-board
+          path: cockpit-good/
+          if-no-files-found: error

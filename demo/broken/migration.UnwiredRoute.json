@@ -1,0 +1,44 @@
+{
+  "project": "StranglerApp.csproj",
+  "routes": [
+    {
+      "id": "orders.search",
+      "state": "strangling",
+      "old": "LegacyOrdersSearch",
+      "new": "OrdersSearchService",
+      "shadow": true,
+      "cases": "cases/orders.search.json",
+      "tolerance": {
+        "numeric": { "total": 0.01 },
+        "ignore": [ "servedBy", "elapsedMs" ]
+      },
+      "traffic": [ 4200, 3100, 1400, 650 ]
+    },
+    {
+      "id": "orders.get",
+      "state": "todo",
+      "old": "LegacyOrdersGet"
+    },
+    {
+      "id": "promo.code",
+      "state": "strangling",
+      "old": "LegacyPromoCodes",
+      "new": "PromoCodeService"
+    },
+    {
+      "id": "shipping.quote",
+      "state": "strangled",
+      "old": "LegacyShippingQuote",
+      "new": "ShippingQuoteService",
+      "shadow": true,
+      "cases": "cases/shipping.quote.json",
+      "tolerance": {
+        "numeric": { "quote": 0.01 },
+        "ignore": [ "servedBy", "elapsedMs" ]
+      },
+      "traffic": [ 4200, 3100, 1400, 210, 90, 0, 0, 0 ],
+      "retirementThreshold": 100,
+      "sunsetPeriods": 3
+    }
+  ]
+}
