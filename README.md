@@ -2,7 +2,7 @@
 
 Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Four commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), and [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56):
+Five commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), and [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60):
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
@@ -10,8 +10,9 @@ Four commands ship today, mapping to book issues [#54](https://github.com/DevelA
 | `sfg seam-ledger` | #55 Extension-point ledger and seam evidence linter | Inventories every seam (interfaces, plugin contracts, event hooks) with consumer counts, flags one-implementation seams as speculative generality, checks versioning and default implementations, and renders the collapse-review checklist. The evidence bar is a required input, never a guess. |
 | `sfg tenant-probes` | #58 Multitenant isolation probe generator | Scans an EF Core model (DbContext, `DbSet<T>` entities) and generates a compilable xunit probe suite: cross-tenant read probes, fail-closed save guards, pool-checkout session-leakage checks, and disabled-state fail-closed probes — one `[Fact]` per entity, all citing the scanned file:line inventory. Runs in CI so isolation regresses loudly. |
 | `sfg cockpit` | #56 Strangler-fig migration cockpit | Reads the migration route table (`migration.json`), checks it against the routing seam (every declared route wired; no undeclared wires), runs the sunset tripwire (a strangled route whose old-implementation traffic stayed under the retirement threshold for the full sunset window — or the fig is not finished), and generates a compilable shadow-diff xunit suite comparing old and new implementations per declared tolerance. |
+| `sfg events` | #60 Event contract conformance harness | Given a message contract (`events.json`), generates a compilable xunit suite that replays chaos-lite against the real consumer: duplicate delivery (exactly-once effects), out-of-order arrival, poison payloads (routed to the dead letters, never a crash), and old-schema producer replay (version-skew tolerance), plus outbox health checks on the producer side (publish waits pending; double dispatch stays idempotent). Seeded faults visibly fail a naive consumer and pass a compliant one — the #60 done-when. |
 
-The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator and the shadow-diff suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration claim is already broken.
+The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator, the shadow-diff suite, and the event conformance suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration / messaging claim is already broken.
 
 ## Install
 
@@ -39,6 +40,9 @@ sfg tenant-probes /path/to/multitenant/app --out probes
 # strangler-fig cockpit: route board + sunset tripwire + shadow-diff suite
 sfg cockpit /path/to/app --out cockpit
 
+# event contract conformance suite: chaos-lite replay against the real consumer
+sfg events /path/to/app --out events
+
 # all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
@@ -47,6 +51,8 @@ sfg cockpit /path/to/app --out cockpit
 # tenant-probes also accepts --config tenant-probes.json (see below)
 # cockpit also accepts --config migration.json (see below); it defaults to
 #   <root>/migration.json when the file exists
+# events also accepts --config events.json (see below); it defaults to
+#   <root>/events.json
 ```
 
 ### Outputs
@@ -81,6 +87,16 @@ sfg cockpit /path/to/app --out cockpit
 - `ShadowDiff.csproj` + `ShadowDiffHarness.cs` + `RouteShadowProbes.cs` + `Cases.cs` — one `[Fact]` per shadow route: the same cases through old and new, deep JSON comparison with per-route tolerance (numeric fields keyed by leaf name at any depth; ignored fields skipped at any depth). A drift fails with `SHADOW DRIFT on route '...' case #...`, naming the route, case, path, and both values. Run with `dotnet test`.
 - `manifest.json` — the shadow inventory: target project, per-route old/new handlers with file:line, case counts, tolerance echo.
 - `README.md` — what the suite bites on, per route.
+
+### Outputs
+
+`events` writes the conformance board and a compilable xunit project (run it with `dotnet test`):
+
+- `events.md` — the human board: every event, its version, case counts, old-schema replay, the scenarios replayed per event, and the conventions verified with `file:line` evidence.
+- `events.json` — the machine summary: consumer and outbox declarations, target project, events with case counts.
+- `EventConformance.csproj` + `EventConformanceHarness.cs` + `ConsumerProbes.cs` + `OutboxProbes.cs` + `Cases.cs` — per event: duplicate delivery applies the message id exactly once; reversed (out-of-order) delivery still applies every case; a fixed poison corpus (malformed JSON, a non-object message, a type-violating envelope) routes to the dead letters without crashing; and for events declaring a `previousVersion`, old-schema replays are applied or dead-lettered — never lost. With an outbox declared: a publish waits in `Pending`, and a double `MarkDispatched` leaves exactly one `Dispatched` entry and an empty `Pending`. Failures carry `EVENT CONTRACT violated on '...'`, naming the event, the message id, and the broken guarantee.
+- `manifest.json` — the versioned inventory: consumer and outbox with member evidence, scenarios, per-event case counts.
+- `README.md` — what each probe bites on, per event.
 
 ### Route table (`migration.json`, the cockpit's required input)
 
@@ -140,6 +156,42 @@ Defaults: the DbContext is auto-detected when exactly one exists under the root 
 - every probed entity has a settable tenant property (`TenantId` by default) and a parameterless constructor.
 
 If a convention is missing the generated suite fails to compile — deliberately loud, not a silent skip.
+
+### Event contract (`events.json`, the events harness's required input)
+
+```json
+{
+  "project": "src/MyApp/MyApp.csproj",
+  "consumer": "OrderEventsConsumer",
+  "outbox": "Outbox",
+  "events": [
+    {
+      "id": "order.placed",
+      "version": 2,
+      "cases": "cases/order.placed.json",
+      "previousVersion": 1,
+      "skewCases": "cases/order.placed.v1.json"
+    },
+    {
+      "id": "invoice.issued",
+      "version": 1,
+      "cases": "cases/invoice.issued.json"
+    }
+  ]
+}
+```
+
+`cases` (and `skewCases`, required when `previousVersion` is declared) are JSON files of payload arrays, replayed verbatim. `previousVersion` must be older than `version` — the version-skew scenario replays an old-schema producer, never a guess about ordering. Duplicate event ids, missing case files, and skew without a previous version fail loudly at generation time.
+
+### Conventions the events target must satisfy
+
+- the consumer exposes `Handle(string message)` — one delivery, one call,
+- the consumer exposes `AppliedEffects` (`IReadOnlyList<string>` of applied message ids, deduplicated — at-least-once delivery, exactly-once effects),
+- the consumer exposes `DeadLetters` (`IReadOnlyList<string>` of raw dead-lettered messages),
+- the consumer has a parameterless constructor;
+- the outbox (optional) exposes `Publish(string)`, `MarkDispatched(string)`, `Pending` and `Dispatched` (`IReadOnlyList<string>`), and a parameterless constructor.
+
+If a convention is missing the generator fails loudly with file:line evidence — never a silent skip.
 
 ### Configuration (`sfg.json`, all keys optional)
 
@@ -211,6 +263,8 @@ Traffic history shorter than the sunset window keeps both tripwires silent — n
 - **Deterministic output.** Ordinal sorting everywhere, relative paths, no timestamps — identical input produces byte-identical artifacts.
 - **Honest findings.** Errors mean a configured boundary rule is violated; warnings are judgment calls for review. Nothing is silently filtered.
 - **`tenant-probes` is EF-shaped and convention-checked.** The model scan is syntax-level (no compilation): a DbContext is a class deriving `DbContext`, an entity is a `DbSet<T>` property, and entity namespaces resolve by simple name (ambiguous or missing declarations are loud errors, never guesses). The probes exercise your conventions against a real SQLite in-memory database — they prove the mechanism exists, not that every query in your app is filtered. Pool-checkout checks stand in for `DbContext` pooling with fresh contexts over identical options; if your context pool resets tenant state via `IDbContextFactory`, wire that into the harness. Raw-SQL RLS probes (PostgreSQL `current_setting`-based) are a deliberate non-goal of this version.
+- **`events` proves tolerance on replayed cases, not production behavior.** The convention scan is syntax-level: the consumer and outbox resolve by simple class/record name (missing or ambiguous declarations are loud errors). The probes replay deterministic envelopes — ids `case-N`, `skew-N`, `ob-N` — against freshly constructed consumers; they prove the tolerance mechanisms (dedup, dead-lettering, skew handling, outbox idempotency) exist and work on the declared cases, not that every production path is safe. Poison payloads are a fixed corpus (malformed JSON, a non-object message, a type-violating envelope); extend the corpus by adding cases, not by editing generated files.
+
 - **`cockpit` reasons about claims, not proof of traffic.** The pivot and handler scans are syntax-level: wiring evidence is a string-literal route id (dynamic ids are skipped, never guessed), handler resolution is by simple class/record name (missing or ambiguous declarations are loud errors). The shadow-diff suite exercises the declared `old`/`new` handlers under the convention `string <Method>(string input)` with JSON in and JSON out; it proves the two implementations agree on the declared cases within the declared tolerance — it does not observe production traffic. The `traffic` history is data you attest to in the route table; the tripwires check it for consistency, not provenance.
 
 ## Demo
@@ -221,9 +275,11 @@ The tenant-probe demo is in-repo: [`demo/MultitenantApp`](demo/README.md), a sma
 
 The cockpit demo is also in-repo: [`demo/StranglerApp`](demo/README.md), a small strangler-fig app whose `shipping.quote` route is strangled end to end — promoted at the routing pivot, shadow-diffed green against the retired legacy handler, and retired below the traffic threshold, so the sunset tripwire fires (the #56 done-when: one route strangled with the tripwire armed and firing). CI also runs three deliberately broken variants: a drifted new implementation (the shadow suite fails with `SHADOW DRIFT`), an unwired declared route (`migration/unwired-route` error), and a strangled route whose traffic contradicts the claim (`migration/strangle-unfinished` error).
 
+The events demo is in-repo too: [`demo/EventApp`](demo/README.md), a small eventing app with a compliant `OrderEventsConsumer` (dedup, dead letters, old-schema tolerance) and `Outbox`, two event contracts — `order.placed` v2 with a v1 skew replay, and `invoice.issued` v1 — plus two deliberately regressed variants: a naive consumer (no dedup, crashes on poison, refuses old versions) and a fire-and-forget outbox (publishes vanish, dispatches leave no bookkeeping). CI generates the suite, runs it green against the good app, then swaps each broken variant in and asserts the suite **fails** with `EventConformance.ConsumerProbes` / `EventConformance.OutboxProbes` — the #60 done-when: seeded faults visibly fail a naive consumer and pass a compliant one.
+
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit). Next per the book's build order: #60.
+See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness).
 
 ## License
 

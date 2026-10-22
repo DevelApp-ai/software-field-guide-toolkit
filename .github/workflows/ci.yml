@@ -255,3 +255,79 @@ jobs:
           name: sfg-cockpit-board
           path: cockpit-good/
           if-no-files-found: error
+  demo-events:
+    name: events harness bites on the eventing demo
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # events-good/, events-rerun/, events-naive/, events-fireandforget/
+      # are generated output and never committed; the manifest is uploaded as the artifact.
+      - name: Generate the conformance suite for the good app and run it green
+        run: |
+          ./.tools/sfg events demo/EventApp --out events-good
+          dotnet test events-good/EventConformance.csproj
+
+      - name: Assert the board is cited and complete
+        run: |
+          set -eu
+          test -s events-good/events.md
+          grep -q "order.placed" events-good/events.md
+          grep -q "invoice.issued" events-good/events.md
+          grep -qE ':[0-9]+`' events-good/events.md
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          ./.tools/sfg events demo/EventApp --out events-rerun
+          for f in events.md events.json EventConformance.csproj EventConformanceHarness.cs ConsumerProbes.cs OutboxProbes.cs Cases.cs manifest.json README.md; do
+            cmp "events-good/$f" "events-rerun/$f"
+          done
+
+      - name: Conformance bites on the naive consumer
+        run: |
+          cp -r demo/EventApp /tmp/app-naive
+          cp demo/broken/OrderEventsConsumer.Naive.cs /tmp/app-naive/OrderEventsConsumer.cs
+          ./.tools/sfg events /tmp/app-naive --out events-naive
+          set +e
+          dotnet test events-naive/EventConformance.csproj > naive.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "HARNESS DID NOT BITE: the naive consumer passed the conformance suite"; exit 1
+          fi
+          grep -q "Failed EventConformance.ConsumerProbes" naive.log
+
+      - name: Outbox probes bite on the fire-and-forget outbox
+        run: |
+          cp -r demo/EventApp /tmp/app-fireandforget
+          cp demo/broken/Outbox.FireAndForget.cs /tmp/app-fireandforget/Outbox.cs
+          ./.tools/sfg events /tmp/app-fireandforget --out events-fireandforget
+          set +e
+          dotnet test events-fireandforget/EventConformance.csproj > fireandforget.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "HARNESS DID NOT BITE: the fire-and-forget outbox passed the conformance suite"; exit 1
+          fi
+          grep -q "Failed EventConformance.OutboxProbes" fireandforget.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-events-manifest
+          path: events-good/manifest.json
+          if-no-files-found: error
