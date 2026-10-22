@@ -2,14 +2,16 @@
 
 Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Two commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54) and [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55):
+Four commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), and [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56):
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
 | `sfg context-map` | #54 Architecture context mapper and boundary doctor | Scans a .NET solution, builds the context dependency graph, and flags reach-arounds, forbidden directions, shared-kernel sprawl, and orphaned seams — every finding with file:line evidence. Emits an editable drawio map in the book's diagram conventions. |
 | `sfg seam-ledger` | #55 Extension-point ledger and seam evidence linter | Inventories every seam (interfaces, plugin contracts, event hooks) with consumer counts, flags one-implementation seams as speculative generality, checks versioning and default implementations, and renders the collapse-review checklist. The evidence bar is a required input, never a guess. |
+| `sfg tenant-probes` | #58 Multitenant isolation probe generator | Scans an EF Core model (DbContext, `DbSet<T>` entities) and generates a compilable xunit probe suite: cross-tenant read probes, fail-closed save guards, pool-checkout session-leakage checks, and disabled-state fail-closed probes — one `[Fact]` per entity, all citing the scanned file:line inventory. Runs in CI so isolation regresses loudly. |
+| `sfg cockpit` | #56 Strangler-fig migration cockpit | Reads the migration route table (`migration.json`), checks it against the routing seam (every declared route wired; no undeclared wires), runs the sunset tripwire (a strangled route whose old-implementation traffic stayed under the retirement threshold for the full sunset window — or the fig is not finished), and generates a compilable shadow-diff xunit suite comparing old and new implementations per declared tolerance. |
 
-Both commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type.
+The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator and the shadow-diff suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration claim is already broken.
 
 ## Install
 
@@ -31,11 +33,20 @@ sfg context-map /path/to/solution
 # seam ledger: json ledger + collapse-review checklist
 sfg seam-ledger /path/to/solution
 
-# both accept:
+# tenant-isolation probe suite: compilable xunit project
+sfg tenant-probes /path/to/multitenant/app --out probes
+
+# strangler-fig cockpit: route board + sunset tripwire + shadow-diff suite
+sfg cockpit /path/to/app --out cockpit
+
+# all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
-#   --strict                exit 1 if any error-severity finding (context-map)
+#   --strict                exit 1 if any error-severity finding (context-map, cockpit)
 #   --evidence evidence.json seam evidence entries (seam-ledger)
+# tenant-probes also accepts --config tenant-probes.json (see below)
+# cockpit also accepts --config migration.json (see below); it defaults to
+#   <root>/migration.json when the file exists
 ```
 
 ### Outputs
@@ -50,6 +61,85 @@ sfg seam-ledger /path/to/solution
 
 - `seam-ledger.json` — the versioned complexity ledger: one entry per seam with kind (`interface` / `plugin-contract` / `event-hook`), file:line, implementations, consumer contexts, usage sites, default implementation (with registration site), `versioned` flag, speculative-generality flag, and evidence status.
 - `collapse-review.md` — the checklist: which seams are **due for a collapse decision** (and why), which to monitor, and which fail the evidence bar.
+
+`tenant-probes` writes a compilable xunit project (run it with `dotnet test`):
+
+- `TenantProbes.csproj` — references your project and the EF Core provider; regenerating is safe, the output is byte-identical for the same scan.
+- `ProbeHarness.cs` — owns an in-memory SQLite database, seeds one row per probe tenant per entity, and checks out additional contexts over the same options (the pool-checkout stand-in).
+- `CrossTenantReadProbes.cs` — per entity: tenant B's query must return exactly tenant B's rows.
+- `SaveGuardProbes.cs` — per entity: saving an entity stamped with a foreign tenant id must throw.
+- `PoolCheckoutProbes.cs` — per entity: a fresh context over the same options must not inherit the previous tenant's session state.
+- `DisabledStateFailClosedProbes.cs` — per entity: with the tenant context absent, reads return nothing and writes throw (never a fallback to all tenants).
+- `manifest.json` — the versioned probe inventory: DbContext (with file:line), every probed entity (name, namespace, DbSet, file:line), config echo.
+- `README.md` — what each probe class bites on, and the probed-entity table.
+
+`cockpit` writes the migration board and, for routes with `"shadow": true`, a compilable shadow-diff suite:
+
+- `cockpit.md` — the human board: every route's state, wiring evidence, old/new handlers, traffic history, retirement threshold, and sunset verdict; findings sorted errors-first with `file:line` citations.
+- `cockpit.json` — the machine summary: routes, wiring, tripwire verdicts, and findings.
+- `cockpit.drawio` — the state map in the book's conventions (strangled green, strangling amber, todo grey; a fired tripwire draws a red dashed stroke).
+- `ShadowDiff.csproj` + `ShadowDiffHarness.cs` + `RouteShadowProbes.cs` + `Cases.cs` — one `[Fact]` per shadow route: the same cases through old and new, deep JSON comparison with per-route tolerance (numeric fields keyed by leaf name at any depth; ignored fields skipped at any depth). A drift fails with `SHADOW DRIFT on route '...' case #...`, naming the route, case, path, and both values. Run with `dotnet test`.
+- `manifest.json` — the shadow inventory: target project, per-route old/new handlers with file:line, case counts, tolerance echo.
+- `README.md` — what the suite bites on, per route.
+
+### Route table (`migration.json`, the cockpit's required input)
+
+```json
+{
+  "project": "src/MyWeb/MyWeb.csproj",
+  "routeMethod": "MapRoute",
+  "defaultRetirementThreshold": 100,
+  "defaultSunsetPeriods": 3,
+  "routes": [
+    {
+      "id": "orders.search",
+      "state": "strangling",
+      "old": "LegacyOrdersSearch",
+      "new": "OrdersSearchService",
+      "shadow": true,
+      "cases": "cases/orders.search.json",
+      "tolerance": { "numeric": { "total": 0.01 }, "ignore": [ "servedBy", "elapsedMs" ] },
+      "traffic": [ 4200, 3100, 650 ]
+    },
+    {
+      "id": "shipping.quote",
+      "state": "strangled",
+      "old": "LegacyShippingQuote",
+      "new": "ShippingQuoteService",
+      "traffic": [ 4200, 210, 90, 0, 0, 0 ],
+      "retirementThreshold": 100,
+      "sunsetPeriods": 3
+    }
+  ]
+}
+```
+
+`state` is `todo`, `strangling`, or `strangled` (strangling/strangled need `old` + `new`; shadow routes need `old` + `new` + `cases`). `traffic` is the old implementation's request count per period, oldest first. Only `routes` is required; `project` is optional (defaults to the shadow handlers' single distinct project), `routeMethod` defaults to `MapRoute`. The pivot scan honors only string-literal route ids — dynamic ids are skipped loudly by omission, never guessed.
+
+### Configuration (`tenant-probes.json`, all keys optional)
+
+```json
+{
+  "project": "src/MyApp/MyApp.csproj",
+  "dbContext": "AppDbContext",
+  "tenantProperty": "TenantId",
+  "contextTenantProperty": "CurrentTenantId",
+  "tenantA": "tenant-a",
+  "tenantB": "tenant-b",
+  "providerPackage": "Microsoft.EntityFrameworkCore.Sqlite",
+  "providerVersion": "8.0.11"
+}
+```
+
+Defaults: the DbContext is auto-detected when exactly one exists under the root (otherwise configure `dbContext`); the target project is the DbContext's nearest csproj; tenant discriminator `TenantId`, ambient tenant property `CurrentTenantId`, probe tenants `tenant-a`/`tenant-b`, provider SQLite 8.0.11.
+
+### Conventions the probe target must satisfy
+
+- the DbContext constructor accepts `DbContextOptions`,
+- the DbContext exposes a **settable** ambient-tenant property (`CurrentTenantId` by default) — the session state the probes manipulate,
+- every probed entity has a settable tenant property (`TenantId` by default) and a parameterless constructor.
+
+If a convention is missing the generated suite fails to compile — deliberately loud, not a silent skip.
 
 ### Configuration (`sfg.json`, all keys optional)
 
@@ -103,20 +193,37 @@ Seam ledger:
 | `defaultImplementation` | implementation registered in DI-style code, else conventional name match (seam minus `I`) — cites the registration file:line |
 | `evidenceComplete` | required evidence entry present and complete |
 
+Cockpit:
+
+| Rule | Severity | Fires when |
+| --- | --- | --- |
+| `migration/unwired-route` | error | a declared route is never wired at the routing seam — the pivot must call `MapRoute("id", ...)` before the migration can claim it |
+| `migration/undeclared-route` | warning | a route is wired at the seam but missing from the route table — an undeclared route strangles nothing |
+| `migration/sunset-window` | warning | tripwire: a strangled route's old-implementation traffic stayed at or under the retirement threshold for the full sunset window — delete the old handler and remove the route entry |
+| `migration/strangle-unfinished` | error | tripwire: a route is declared strangled but old-implementation traffic still exceeds the retirement threshold in the sunset window — the fig has not strangled it |
+
+Traffic history shorter than the sunset window keeps both tripwires silent — no verdict, no guess.
+
 ## Honest evaluation status
 
 - **Syntax-level analysis.** The scanner uses Roslyn (`ParseText`) only — no `MSBuildWorkspace`, no compilation, no semantic binding. Usage resolution is by simple type name; when a name is declared in multiple projects the analysis skips it rather than guessing (an "ambiguous" count is in `context-map.json`).
 - **No restore required.** Target solutions are never built, so the tool runs against codebases whose dependencies don't even compile on the scan machine. Attribute usages match by attribute name with a fallback suffix.
 - **Deterministic output.** Ordinal sorting everywhere, relative paths, no timestamps — identical input produces byte-identical artifacts.
 - **Honest findings.** Errors mean a configured boundary rule is violated; warnings are judgment calls for review. Nothing is silently filtered.
+- **`tenant-probes` is EF-shaped and convention-checked.** The model scan is syntax-level (no compilation): a DbContext is a class deriving `DbContext`, an entity is a `DbSet<T>` property, and entity namespaces resolve by simple name (ambiguous or missing declarations are loud errors, never guesses). The probes exercise your conventions against a real SQLite in-memory database — they prove the mechanism exists, not that every query in your app is filtered. Pool-checkout checks stand in for `DbContext` pooling with fresh contexts over identical options; if your context pool resets tenant state via `IDbContextFactory`, wire that into the harness. Raw-SQL RLS probes (PostgreSQL `current_setting`-based) are a deliberate non-goal of this version.
+- **`cockpit` reasons about claims, not proof of traffic.** The pivot and handler scans are syntax-level: wiring evidence is a string-literal route id (dynamic ids are skipped, never guessed), handler resolution is by simple class/record name (missing or ambiguous declarations are loud errors). The shadow-diff suite exercises the declared `old`/`new` handlers under the convention `string <Method>(string input)` with JSON in and JSON out; it proves the two implementations agree on the declared cases within the declared tolerance — it does not observe production traffic. The `traffic` history is data you attest to in the route table; the tripwires check it for consistency, not provenance.
 
 ## Demo
 
-CI demonstrates both commands against two public example codebases — [ErpLight](https://github.com/DevelApp-ai/ErpLight) (plugin-module ERP) and [RuntimePluggableClassFactory](https://github.com/DevelApp-ai/RuntimePluggableClassFactory) (runtime pluggable class factory) — and uploads the generated maps, findings, and ledgers as workflow artifacts.
+CI demonstrates both analysis commands against two public example codebases — [ErpLight](https://github.com/DevelApp-ai/ErpLight) (plugin-module ERP) and [RuntimePluggableClassFactory](https://github.com/DevelApp-ai/RuntimePluggableClassFactory) (runtime pluggable class factory) — and uploads the generated maps, findings, and ledgers as workflow artifacts.
+
+The tenant-probe demo is in-repo: [`demo/MultitenantApp`](demo/README.md), a small EF Core app with a per-tenant query filter and a fail-closed `SaveChanges` guard, plus two deliberately regressed variants (query filter removed; save guard removed). CI generates the probe suite, runs it green against the good app, then swaps each broken variant in and asserts the suite **fails** — the #58 done-when proof: isolation regressions fail loudly, by construction.
+
+The cockpit demo is also in-repo: [`demo/StranglerApp`](demo/README.md), a small strangler-fig app whose `shipping.quote` route is strangled end to end — promoted at the routing pivot, shadow-diffed green against the retired legacy handler, and retired below the traffic threshold, so the sunset tripwire fires (the #56 done-when: one route strangled with the tripwire armed and firing). CI also runs three deliberately broken variants: a drifted new implementation (the shadow suite fails with `SHADOW DRIFT`), an unwired declared route (`migration/unwired-route` error), and a strangled route whose traffic contradicts the claim (`migration/strangle-unfinished` error).
 
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter). Next per the book's build order: #56, #58, #60.
+See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit). Next per the book's build order: #60.
 
 ## License
 

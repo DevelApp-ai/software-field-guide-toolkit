@@ -11,5 +11,7 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.Core\Sfg.Toolkit.Core.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.ContextMap\Sfg.Toolkit.ContextMap.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.SeamLedger\Sfg.Toolkit.SeamLedger.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.TenantProbes\Sfg.Toolkit.TenantProbes.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.Cockpit\Sfg.Toolkit.Cockpit.csproj" />
   </ItemGroup>
 </Project>

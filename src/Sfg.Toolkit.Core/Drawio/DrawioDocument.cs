@@ -21,10 +21,10 @@ public sealed class DrawioDocument
         _edges.Add(new Edge(id, source, target, label, style));
     }
 
-    public string ToXml(int pageWidth, int pageHeight)
+    public string ToXml(int pageWidth, int pageHeight, string diagramName = "ContextMap", string diagramId = "context-map")
     {
         var mxfile = new XElement("mxfile", new XAttribute("agent", "vibe"));
-        var diagram = new XElement("diagram", new XAttribute("id", "context-map"), new XAttribute("name", "ContextMap"));
+        var diagram = new XElement("diagram", new XAttribute("id", diagramId), new XAttribute("name", diagramName));
         var model = new XElement(
             "mxGraphModel",
             new XAttribute("dx", "800"),
