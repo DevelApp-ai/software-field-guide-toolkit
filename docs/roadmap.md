@@ -1,0 +1,15 @@
+# Toolkit roadmap
+
+The toolkit implements the companion-tool roadmap from book tracking issue [#53](https://github.com/DevelApp-ai/software-field-guide/issues/53) in DevelApp-ai/software-field-guide. Each issue lands as its own PR against `main`; Lars merges.
+
+| Book issue | Component | Command | Status |
+| --- | --- | --- | --- |
+| [#54 Architecture context mapper and boundary doctor](https://github.com/DevelApp-ai/software-field-guide/issues/54) | `Sfg.Toolkit.Core` + `Sfg.Toolkit.ContextMap` | `sfg context-map` | done — this PR |
+| [#55 Extension-point ledger and seam evidence linter](https://github.com/DevelApp-ai/software-field-guide/issues/55) | `Sfg.Toolkit.SeamLedger` | `sfg seam-ledger` | done — this PR |
+| [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56) | contract-driven context seeding from the contracts repo (#57 validator outputs) | — | next |
+| [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58) | — | — | planned |
+| [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60) | — | — | planned |
+
+Related repo: [software-field-guide-contracts](https://github.com/DevelApp-ai/software-field-guide-contracts) — Rego estate/seam contract validator (#57) with a GitHub Pages playground, already delivered as PR #1.
+
+The context mapper draws diagrams in the book's drawio conventions (see the book repo's diagram appendix): `agent="vibe"` on the mxfile, HTML `<br>` labels, house palette of host blue / plugin orange / shared-kernel yellow, green edges for clean dependencies and red dashed edges for forbidden directions.

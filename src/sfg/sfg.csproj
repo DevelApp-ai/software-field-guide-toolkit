@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>sfg</ToolCommandName>
+    <PackageId>Sfg.Tool</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>DevelApp.ai</Authors>
+    <Description>Software Field Guide companion tools: code-truth context mapper (#54) and seam ledger (#55).</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/DevelApp-ai/software-field-guide-toolkit</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Sfg.Toolkit.Core\Sfg.Toolkit.Core.csproj" />
+    <ProjectReference Include="..\Sfg.Toolkit.ContextMap\Sfg.Toolkit.ContextMap.csproj" />
+    <ProjectReference Include="..\Sfg.Toolkit.SeamLedger\Sfg.Toolkit.SeamLedger.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
