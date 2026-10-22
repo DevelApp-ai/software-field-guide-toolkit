@@ -1,0 +1,4 @@
+[
+  { "invoiceId": "i-5001", "orderId": "o-1001", "amount": 129.90, "dueDays": 30 },
+  { "invoiceId": "i-5002", "orderId": "o-1002", "amount": 89.50, "dueDays": 14 }
+]

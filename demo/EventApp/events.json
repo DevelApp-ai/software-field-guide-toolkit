@@ -1,0 +1,19 @@
+{
+  "project": "EventApp.csproj",
+  "consumer": "OrderEventsConsumer",
+  "outbox": "Outbox",
+  "events": [
+    {
+      "id": "order.placed",
+      "version": 2,
+      "cases": "cases/order.placed.json",
+      "previousVersion": 1,
+      "skewCases": "cases/order.placed.v1.json"
+    },
+    {
+      "id": "invoice.issued",
+      "version": 1,
+      "cases": "cases/invoice.issued.json"
+    }
+  ]
+}

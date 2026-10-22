@@ -8,7 +8,7 @@ The toolkit implements the companion-tool roadmap from book tracking issue [#53]
 | [#55 Extension-point ledger and seam evidence linter](https://github.com/DevelApp-ai/software-field-guide/issues/55) | `Sfg.Toolkit.SeamLedger` | `sfg seam-ledger` | done — this PR |
 | [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56) | `Sfg.Toolkit.Cockpit` | `sfg cockpit` | done — this PR |
 | [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58) | `Sfg.Toolkit.TenantProbes` | `sfg tenant-probes` | done — this PR |
-| [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60) | — | — | planned |
+| [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60) | `Sfg.Toolkit.EventHarness` | `sfg events` | done — this PR |
 
 Related repo: [software-field-guide-contracts](https://github.com/DevelApp-ai/software-field-guide-contracts) — Rego estate/seam contract validator (#57) with a GitHub Pages playground, already delivered as PR #1.
 

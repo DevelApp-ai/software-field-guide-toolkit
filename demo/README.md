@@ -1,7 +1,7 @@
 # Demos
 
-Two in-repo applications demonstrate the tools' done-when proofs — both are
-deliberately small, both are exercised in CI, and both carry deliberately
+Three in-repo applications demonstrate the tools' done-when proofs — all are
+deliberately small, all are exercised in CI, and all carry deliberately
 broken variants that must make the generated suites fail loudly.
 
 ## Multitenant isolation probes (#58)
@@ -71,3 +71,39 @@ compile scope so they never build together with the real ones:
 CI runs the good app end to end (cockpit board + tripwire + shadow suite
 green), proves the outputs are byte-identical on regeneration, then swaps
 each broken variant in and asserts the tool bites.
+
+## Event contract conformance harness (#60)
+
+`EventApp` is a small eventing application — the target for
+`sfg events`. It carries a compliant `OrderEventsConsumer` (dedupes by
+message id, routes poison to the dead letters, tolerates old-schema
+replays) and a compliant `Outbox` (a publish waits in the pending queue;
+double dispatch stays idempotent), plus two event contracts:
+
+- `order.placed` — version 2, three case payloads, and a declared
+  `previousVersion` 1 with two old-schema skew cases,
+- `invoice.issued` — version 1, two case payloads, no skew.
+
+Conventions the target must satisfy (also documented in the README):
+
+- the consumer exposes `Handle(string message)`, `AppliedEffects`
+  (applied message ids, deduplicated), and `DeadLetters` (raw
+  dead-lettered messages), with a parameterless constructor,
+- the outbox (optional) exposes `Publish(string)`,
+  `MarkDispatched(string)`, `Pending`, and `Dispatched`.
+
+`broken/` holds two deliberately regressed variants, stored outside the
+compile scope so they never build together with the real ones:
+
+- `OrderEventsConsumer.Naive.cs` — no dedup (duplicates apply twice),
+  crashes on poison payloads, and refuses old versions outright: the
+  generated conformance suite must FAIL with
+  `Failed EventConformance.ConsumerProbes`,
+- `Outbox.FireAndForget.cs` — publishes vanish and dispatches leave no
+  bookkeeping: the suite must FAIL with
+  `Failed EventConformance.OutboxProbes`.
+
+CI runs the good app end to end (board + suite green), proves the
+outputs are byte-identical on regeneration, then swaps each broken
+variant in and asserts the suite bites — the #60 done-when: seeded
+faults visibly fail a naive consumer and pass a compliant one.

@@ -1,6 +1,7 @@
 using System.Text;
 using Sfg.Toolkit.Cockpit;
 using Sfg.Toolkit.ContextMap;
+using Sfg.Toolkit.EventHarness;
 using Sfg.Toolkit.Core.Analysis;
 using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.SeamLedger;
@@ -24,8 +25,10 @@ try
             return RunTenantProbes(args[1..]);
         case "cockpit":
             return RunCockpit(args[1..]);
+        case "events":
+            return RunEvents(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.3.0");
+            Console.WriteLine("sfg 0.4.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -139,6 +142,32 @@ static int RunCockpit(string[] args)
     return strict && report.Errors > 0 ? 1 : 0;
 }
 
+static int RunEvents(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config") ?? Path.Combine(root, "events.json");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "events");
+
+    var config = EventHarnessConfig.Load(configPath);
+    var scan = ConventionScanner.Scan(root, config);
+    var suite = EventHarnessGenerator.Generate(root, outDir, config, scan);
+
+    foreach (var file in suite.Files)
+    {
+        WriteFile(outDir, file.Path, file.Content);
+    }
+
+    WriteFile(outDir, "events.md", EventHarnessRenderer.Markdown(config, scan, suite));
+    WriteFile(outDir, "events.json", EventHarnessRenderer.Json(config, scan, suite));
+
+    Console.WriteLine($"events: consumer {scan.Consumer.Name} ({scan.Consumer.File}:{scan.Consumer.Line}), " +
+                      $"{config.Events.Count} events, {suite.Files.Count} suite files" +
+                      (scan.Outbox is null ? string.Empty : $", outbox {scan.Outbox.Name} ({scan.Outbox.File}:{scan.Outbox.Line})"));
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "events.md")}, {Path.Combine(outDir, "events.json")}, " +
+                      $"{outDir}/ (suite: dotnet test {Path.Combine(outDir, "EventConformance.csproj")})");
+    return 0;
+}
+
 static string RequiredRoot(string[] args)
 {
     string? root = null;
@@ -216,6 +245,14 @@ static void PrintHelp()
               tripwire. Emits cockpit.md, cockpit.json, cockpit.drawio, and a
               compilable shadow-diff xunit suite for shadow routes.
               --strict exits non-zero on error-severity findings.
+
+          sfg events <root> [--config <events.json>] [--out <dir>]
+              Generates a compilable xunit conformance suite for message
+              contracts (#60): duplicate delivery, out-of-order arrival,
+              poison payloads (dead letters, never a crash), old-schema
+              producer replay, and outbox health on the producer side.
+              Emits events.md, events.json, and the suite — run with:
+              dotnet test.
 
           sfg --version
 
