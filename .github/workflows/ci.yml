@@ -83,7 +83,7 @@ jobs:
               test -s "$f" || { echo "MISSING OR EMPTY: $f"; exit 1; }
             done
             # every finding must carry a file:line citation
-            grep -q ':[0-9]`' demo/$repo/context-map/findings.md
+            grep -qE ':[0-9]+`' demo/$repo/context-map/findings.md
             # seam ledger must be non-trivial JSON
             test "$(jq '.seams | length' demo/$repo/seam-ledger/seam-ledger.json)" -gt 0
           done
@@ -202,7 +202,7 @@ jobs:
           test -s cockpit-good/cockpit.md
           grep -q "sunset window open" cockpit-good/cockpit.md
           grep -q "shipping.quote" cockpit-good/cockpit.md
-          grep -q ':[0-9]`' cockpit-good/cockpit.md
+          grep -qE ':[0-9]+`' cockpit-good/cockpit.md
 
       - name: Determinism - regenerate and compare byte-identical
         run: |
