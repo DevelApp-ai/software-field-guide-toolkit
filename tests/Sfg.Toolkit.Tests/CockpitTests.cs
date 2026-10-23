@@ -362,7 +362,7 @@ public sealed class CockpitTests
 
             using var manifest = JsonDocument.Parse(SuiteFile(suite, "manifest.json"));
             var root = manifest.RootElement;
-            Assert.Equal("sfg cockpit 0.5.0", root.GetProperty("generator").GetString());
+            Assert.Equal("sfg cockpit 0.6.0", root.GetProperty("generator").GetString());
             Assert.Equal("Demo.App.csproj", root.GetProperty("targetProject").GetString());
             Assert.Equal(2, root.GetProperty("shadowRoutes").GetArrayLength());
             var search = root.GetProperty("shadowRoutes")[0];
@@ -439,7 +439,7 @@ public sealed class CockpitTests
 
             using var summary = JsonDocument.Parse(CockpitRenderer.Json(report, config));
             var root = summary.RootElement;
-            Assert.Equal("sfg cockpit 0.5.0", root.GetProperty("generator").GetString());
+            Assert.Equal("sfg cockpit 0.6.0", root.GetProperty("generator").GetString());
             Assert.Equal(3, root.GetProperty("routes").GetArrayLength());
             var quote = root.GetProperty("routes").EnumerateArray()
                 .Single(r => r.GetProperty("id").GetString() == "shipping.quote");

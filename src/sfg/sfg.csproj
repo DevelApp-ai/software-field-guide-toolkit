@@ -4,9 +4,9 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>sfg</ToolCommandName>
     <PackageId>Sfg.Tool</PackageId>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Authors>DevelApp.ai</Authors>
-    <Description>Software Field Guide companion tools: code-truth context mapper (#54), seam ledger (#55), tenant-isolation probe generator (#58), strangler-fig migration cockpit (#56), event contract conformance harness (#60), and plan-conformance auditor (#64).</Description>
+    <Description>Software Field Guide companion tools: code-truth context mapper (#54), seam ledger (#55), tenant-isolation probe generator (#58), strangler-fig migration cockpit (#56), event contract conformance harness (#60), plan-conformance auditor (#64), and LLM evaluation harness with baseline gate (#66).</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/DevelApp-ai/software-field-guide-toolkit</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Sfg.Toolkit.Cockpit\Sfg.Toolkit.Cockpit.csproj" />
     <ProjectReference Include="..\Sfg.Toolkit.EventHarness\Sfg.Toolkit.EventHarness.csproj" />
     <ProjectReference Include="..\Sfg.Toolkit.PlanAudit\Sfg.Toolkit.PlanAudit.csproj" />
+    <ProjectReference Include="..\Sfg.Toolkit.EvalHarness\Sfg.Toolkit.EvalHarness.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />

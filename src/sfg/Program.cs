@@ -5,6 +5,7 @@ using Sfg.Toolkit.EventHarness;
 using Sfg.Toolkit.Core.Analysis;
 using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.PlanAudit;
+using Sfg.Toolkit.EvalHarness;
 using Sfg.Toolkit.SeamLedger;
 using Sfg.Toolkit.TenantProbes;
 
@@ -30,8 +31,10 @@ try
             return RunEvents(args[1..]);
         case "plan-audit":
             return RunPlanAudit(args[1..]);
+        case "eval":
+            return RunEval(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.5.0");
+            Console.WriteLine("sfg 0.6.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -43,6 +46,35 @@ catch (Exception exception)
 {
     Console.Error.WriteLine($"error: {exception.Message}");
     return 1;
+}
+
+static int RunEval(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config") ?? Path.Combine(root, "eval.json");
+    var resultsPath = Option(args, "--results");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "eval");
+    var strict = HasFlag(args, "--strict");
+    var updateBaseline = HasFlag(args, "--update-baseline");
+
+    var config = EvalHarnessConfig.Load(configPath);
+    var report = EvalAnalyzer.Analyze(config, resultsPath);
+
+    WriteFile(outDir, "eval.md", EvalRenderer.Markdown(config, report));
+    WriteFile(outDir, "eval.json", EvalRenderer.Json(config, report));
+
+    if (updateBaseline)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(config.BaselinePath)) ?? ".");
+        File.WriteAllText(config.BaselinePath, EvalRenderer.BaselineJson(config, report), new UTF8Encoding(false));
+    }
+
+    Console.WriteLine($"eval: suite {config.Name}, run {report.RunName}, {report.Cases.Count} case(s), " +
+                      $"{report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings), " +
+                      $"judge agreement {report.Agreement:0.####} on {report.LabeledSampleSize} labeled case(s)");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "eval.md")}, {Path.Combine(outDir, "eval.json")}" +
+                      (updateBaseline ? $", baseline → {config.BaselinePath}" : string.Empty));
+    return strict && report.Errors > 0 ? 1 : 0;
 }
 
 static int RunPlanAudit(string[] args)
@@ -208,7 +240,7 @@ static string RequiredRoot(string[] args)
     string? root = null;
     for (var i = 0; i < args.Length; i++)
     {
-        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic")
+        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results")
         {
             i++;
             continue;
@@ -298,6 +330,17 @@ static void PrintHelp()
               spec basis), line-anchored on both sides. Advisory by default;
               --strict exits non-zero on error-severity findings. Emits
               plan-audit.md and plan-audit.json.
+
+          sfg eval <root> [--config <eval.json>] [--results <results.json>]
+                      [--out <dir>] [--strict] [--update-baseline]
+              Runs the LLM evaluation harness (#66): matches a recorded run
+              against the committed labeled set, aggregates per-stage
+              metrics, publishes judge agreement against the human-labeled
+              sample, and gates the run against the committed baseline — a
+              regression cites the cases that moved. --update-baseline
+              rewrites the baseline file from this run (commit it
+              deliberately); --strict exits non-zero on error-severity
+              findings. Emits eval.md and eval.json.
 
           sfg --version
 

@@ -9,7 +9,7 @@ namespace Sfg.Toolkit.PlanAudit;
 /// </summary>
 public static class PlanAuditRenderer
 {
-    public const string Generator = "sfg plan-audit 0.5.0";
+    public const string Generator = "sfg plan-audit 0.6.0";
 
     public static string Markdown(PlanAuditConfig config, PlanAuditReport report)
     {

@@ -434,3 +434,85 @@ jobs:
           name: sfg-planaudit-board
           path: planaudit-control/
           if-no-files-found: error
+
+  demo-eval:
+    name: eval harness bites on the docs-assistant demo suite
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # eval-good/, eval-rerun/, eval-regressed/, eval-unknown/,
+      # eval-baseline-regen/ are generated output and never committed; the
+      # conformant control board is uploaded as the artifact.
+      - name: Control run is silent and reports judge calibration
+        run: |
+          set -eu
+          ./.tools/sfg eval demo/EvalApp --out eval-good
+          grep -q "Clean run" eval-good/eval.md
+          grep -q "agreement 0.8571" eval-good/eval.md
+          grep -q "Disagreements: .g3." eval-good/eval.md
+          test "$(jq '.errors' eval-good/eval.json)" -eq 0
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg eval demo/EvalApp --out eval-rerun
+          cmp eval-good/eval.md eval-rerun/eval.md
+          cmp eval-good/eval.json eval-rerun/eval.json
+
+      - name: The committed baseline is exactly what the tool writes
+        run: |
+          set -eu
+          cp demo/EvalApp/baseline.json /tmp/baseline.orig
+          ./.tools/sfg eval demo/EvalApp --out eval-baseline-regen --update-baseline
+          cmp /tmp/baseline.orig demo/EvalApp/baseline.json
+
+      - name: The gate bites on a seeded regression with per-case evidence
+        run: |
+          set +e
+          ./.tools/sfg eval demo/EvalApp --results demo/broken/results.Regressed.json --out eval-regressed --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the seeded regression passed --strict"; exit 1
+          fi
+          grep -q "eval/baseline-regression" eval-regressed/eval.md
+          grep -q "moved cases: 'r3'" eval-regressed/eval.md
+          grep -q "moved cases: 'g2'" eval-regressed/eval.md
+          grep -q "eval/threshold-breach" eval-regressed/eval.md
+          grep -qE ':[0-9]+`' eval-regressed/eval.md
+          test "$(jq '.errors' eval-regressed/eval.json)" -eq 4
+
+      - name: The gate bites on an undeclared case
+        run: |
+          set +e
+          ./.tools/sfg eval demo/EvalApp --results demo/broken/results.UnknownCase.json --out eval-unknown --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the undeclared case passed --strict"; exit 1
+          fi
+          grep -q "eval/unknown-result" eval-unknown/eval.md
+          grep -q "'r99'" eval-unknown/eval.md
+          test "$(jq '.errors' eval-unknown/eval.json)" -eq 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-eval-board
+          path: eval-good/
+          if-no-files-found: error

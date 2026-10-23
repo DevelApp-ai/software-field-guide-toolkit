@@ -1,0 +1,15 @@
+{
+  "run": "docs-assistant-v3-plus-stray",
+  "results": [
+    { "id": "r1", "predicted": "docs/encryption/rotation.md", "judge": "correct", "scores": { "recallAt3": 1.0 } },
+    { "id": "r2", "predicted": "docs/isolation/rebinding.md", "judge": "correct", "scores": { "recallAt3": 1.0 } },
+    { "id": "r3", "predicted": "docs/events/outbox.md", "judge": "correct", "scores": { "recallAt3": 1.0 } },
+    { "id": "r4", "predicted": "docs/plugins/load-contexts.md", "judge": "correct", "scores": { "recallAt3": 1.0 } },
+    { "id": "r5", "predicted": "docs/observability/cardinality.md", "judge": "incorrect", "scores": { "recallAt3": 0.67 } },
+    { "id": "r99", "predicted": "docs/wherever.md", "judge": "correct", "scores": { "recallAt3": 1.0 } },
+    { "id": "g1", "predicted": "summary: rotate keys via the envelope re-wrap path", "judge": "correct", "scores": { "faithfulness": 1.0, "refusalCorrectness": 1.0 } },
+    { "id": "g2", "predicted": "summary: outbox before dual-write, always", "judge": "correct", "scores": { "faithfulness": 1.0, "refusalCorrectness": 1.0 } },
+    { "id": "g3", "predicted": "summary: rebind per checkout session", "judge": "incorrect", "scores": { "faithfulness": 0.8, "refusalCorrectness": 1.0 } },
+    { "id": "g4", "predicted": "REFUSED: query is outside the corpus", "judge": "correct", "scores": { "faithfulness": 1.0, "refusalCorrectness": 1.0 } }
+  ]
+}
