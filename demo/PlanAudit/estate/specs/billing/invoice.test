@@ -1,0 +1,8 @@
+# Invoicing - acceptance criteria
+
+- Given the accepted quote Q-1,
+  then the invoice references Q-1.
+- Given an invoice with total due 1250.00 and deadline 2027-01-15,
+  then the invoice states both.
+- Given a paid invoice,
+  then it is marked paid and never re-issued.

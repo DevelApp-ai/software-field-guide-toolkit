@@ -1,0 +1,18 @@
+diff --git a/specs/quote/quote-order.ai b/specs/quote/quote-order.ai
+index 1111111..2222222 100644
+--- a/specs/quote/quote-order.ai
++++ b/specs/quote/quote-order.ai
+@@ -8,3 +8,4 @@
+ - R1: The total is the sum of all line items, two decimal places.
+ - R2: A quote is valid for 30 days from the moment it is issued.
+ - R3: A quote identifies the customer it was issued to.
++- R4: Prices are quoted including VAT.
+diff --git a/specs/billing/invoice.ai b/specs/billing/invoice.ai
+index 1111111..2222222 100644
+--- a/specs/billing/invoice.ai
++++ b/specs/billing/invoice.ai
+@@ -7,3 +7,4 @@
+ - R1: An invoice references exactly one accepted quote.
+ - R2: An invoice states the total due and the payment deadline.
+ - R3: A paid invoice is marked paid and never re-issued.
++- R4: Invoices are exportable as PDF.

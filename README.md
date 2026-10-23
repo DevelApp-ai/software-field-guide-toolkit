@@ -2,7 +2,7 @@
 
 Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Five commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), and [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60):
+Six commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), and [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64):
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
@@ -11,6 +11,7 @@ Five commands ship today, mapping to book issues [#54](https://github.com/DevelA
 | `sfg tenant-probes` | #58 Multitenant isolation probe generator | Scans an EF Core model (DbContext, `DbSet<T>` entities) and generates a compilable xunit probe suite: cross-tenant read probes, fail-closed save guards, pool-checkout session-leakage checks, and disabled-state fail-closed probes — one `[Fact]` per entity, all citing the scanned file:line inventory. Runs in CI so isolation regresses loudly. |
 | `sfg cockpit` | #56 Strangler-fig migration cockpit | Reads the migration route table (`migration.json`), checks it against the routing seam (every declared route wired; no undeclared wires), runs the sunset tripwire (a strangled route whose old-implementation traffic stayed under the retirement threshold for the full sunset window — or the fig is not finished), and generates a compilable shadow-diff xunit suite comparing old and new implementations per declared tolerance. |
 | `sfg events` | #60 Event contract conformance harness | Given a message contract (`events.json`), generates a compilable xunit suite that replays chaos-lite against the real consumer: duplicate delivery (exactly-once effects), out-of-order arrival, poison payloads (routed to the dead letters, never a crash), and old-schema producer replay (version-skew tolerance), plus outbox health checks on the producer side (publish waits pending; double dispatch stays idempotent). Seeded faults visibly fail a naive consumer and pass a compliant one — the #60 done-when. |
+| `sfg plan-audit` | #64 Plan-conformance auditor | Reconciles the approved spec diff (the intent PR's `.ai`/`.test` changes) against the generated code diff (the implementation PR) through a declared spec-to-code coverage map, and reports the two discrepancy classes — **omission** (an approved spec change no generated change implements) and **unapproved addition** (a generated change with no spec basis) — line-anchored on both sides, ranked errors-first and capped. Advisory by default; `--strict` exits non-zero on errors. LLM-assisted semantic matches are accepted only with valid anchors on both sides and are always labeled. |
 
 The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator, the shadow-diff suite, and the event conformance suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration / messaging claim is already broken.
 
@@ -43,6 +44,9 @@ sfg cockpit /path/to/app --out cockpit
 # event contract conformance suite: chaos-lite replay against the real consumer
 sfg events /path/to/app --out events
 
+# plan-conformance audit: intent diff vs implementation diff, advisory
+sfg plan-audit /path/to/estate --spec-diff intent.diff --code-diff implementation.diff
+
 # all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
@@ -53,6 +57,10 @@ sfg events /path/to/app --out events
 #   <root>/migration.json when the file exists
 # events also accepts --config events.json (see below); it defaults to
 #   <root>/events.json
+# plan-audit also accepts --config plan-audit.json (see below); it defaults to
+#   <root>/plan-audit.json, and --semantic matches.json for externally
+#   produced (e.g. LLM-assisted) spec-to-code matches; --strict exits 1 on
+#   error-severity findings (default: advisory, exit 0)
 ```
 
 ### Outputs
@@ -97,6 +105,11 @@ sfg events /path/to/app --out events
 - `EventConformance.csproj` + `EventConformanceHarness.cs` + `ConsumerProbes.cs` + `OutboxProbes.cs` + `Cases.cs` — per event: duplicate delivery applies the message id exactly once; reversed (out-of-order) delivery still applies every case; a fixed poison corpus (malformed JSON, a non-object message, a type-violating envelope) routes to the dead letters without crashing; and for events declaring a `previousVersion`, old-schema replays are applied or dead-lettered — never lost. With an outbox declared: a publish waits in `Pending`, and a double `MarkDispatched` leaves exactly one `Dispatched` entry and an empty `Pending`. Failures carry `EVENT CONTRACT violated on '...'`, naming the event, the message id, and the broken guarantee.
 - `manifest.json` — the versioned inventory: consumer and outbox with member evidence, scenarios, per-event case counts.
 - `README.md` — what each probe bites on, per event.
+
+`plan-audit` writes the conformance board:
+
+- `plan-audit.md` — the human board: the approved spec change and the generated change side by side (each changed file with its line anchor and mapped area), the matches that reconcile them (machine matches from the coverage map; semantic matches labeled with their note), and the findings sorted errors-first with `file:line` citations on both sides.
+- `plan-audit.json` — the machine summary: spec and code files with anchors and areas, matches with provenance, findings with rule/severity/anchors, error and warning counts.
 
 ### Route table (`migration.json`, the cockpit's required input)
 
@@ -183,6 +196,34 @@ If a convention is missing the generated suite fails to compile — deliberately
 
 `cases` (and `skewCases`, required when `previousVersion` is declared) are JSON files of payload arrays, replayed verbatim. `previousVersion` must be older than `version` — the version-skew scenario replays an old-schema producer, never a guess about ordering. Duplicate event ids, missing case files, and skew without a previous version fail loudly at generation time.
 
+### Plan-audit map (`plan-audit.json`, the plan auditor's required input)
+
+```json
+{
+  "project": "src/QuoteTree/QuoteTree.csproj",
+  "map": [
+    { "spec": "specs/quote/", "code": "src/QuoteTree/Quote/" },
+    { "spec": "specs/billing/", "code": "src/QuoteTree/Billing/" }
+  ],
+  "allowedUnmappedCode": [ "src/QuoteTree/QuoteTree.csproj" ]
+}
+```
+
+`map` declares the spec-to-code coverage: intent files under a `spec` prefix are implemented by code under the paired `code` prefix — that pairing is the machine reconciliation unit. `allowedUnmappedCode` lists code paths that may change without a spec basis (build files, docs). `maxFindings` (default 50) caps the rendered findings; the hidden count is named. Overlapping spec or code prefixes never pass silently — an ambiguous map is a loud error.
+
+The optional `--semantic matches.json` file declares externally produced spec-to-code correspondences (an LLM pass is the expected producer):
+
+```json
+{
+  "matches": [
+    { "spec": "specs/quote/quote-order.ai:11", "code": "src/QuoteTree/Billing/AuditTrail.cs:1",
+      "note": "R5's audit trail is implemented by the new AuditTrail class, outside the declared quote-area map." }
+  ]
+}
+```
+
+Every semantic match must anchor a line the spec diff actually changes to a line the code diff actually changes, cite changed files on both sides, and is rendered labeled `semantic` — never a silent guess.
+
 ### Conventions the events target must satisfy
 
 - the consumer exposes `Handle(string message)` — one delivery, one call,
@@ -256,6 +297,15 @@ Cockpit:
 
 Traffic history shorter than the sunset window keeps both tripwires silent — no verdict, no guess.
 
+Plan audit:
+
+| Rule | Severity | Fires when |
+| --- | --- | --- |
+| `plan/omission` | error | an approved spec change in a mapped area has no generated change under the area it maps to — the intent was never implemented |
+| `plan/unapproved-addition` | error | a generated change in a mapped area has no spec basis — scope drift, an invented feature, or hallucinated cleanup |
+| `plan/unmapped-spec` | warning | a changed spec file matches no map entry — the coverage map does not cover this intent |
+| `plan/unmapped-code` | warning | a changed code file matches no map entry and no allowed-unmapped prefix |
+
 ## Honest evaluation status
 
 - **Syntax-level analysis.** The scanner uses Roslyn (`ParseText`) only — no `MSBuildWorkspace`, no compilation, no semantic binding. Usage resolution is by simple type name; when a name is declared in multiple projects the analysis skips it rather than guessing (an "ambiguous" count is in `context-map.json`).
@@ -267,6 +317,8 @@ Traffic history shorter than the sunset window keeps both tripwires silent — n
 
 - **`cockpit` reasons about claims, not proof of traffic.** The pivot and handler scans are syntax-level: wiring evidence is a string-literal route id (dynamic ids are skipped, never guessed), handler resolution is by simple class/record name (missing or ambiguous declarations are loud errors). The shadow-diff suite exercises the declared `old`/`new` handlers under the convention `string <Method>(string input)` with JSON in and JSON out; it proves the two implementations agree on the declared cases within the declared tolerance — it does not observe production traffic. The `traffic` history is data you attest to in the route table; the tripwires check it for consistency, not provenance.
 
+- **`plan-audit` reconciles coverage, not semantics.** Machine matches are area-level: a changed spec file and a changed code file in mapped areas reconcile each other — the audit proves every changed file on both sides is accounted for, not that a change is the right implementation of a requirement. Line anchors cite the first added line (deletion-only changes anchor the hunk start). Semantic matches are externally produced (an LLM pass is the expected producer), accepted only when both anchors are lines the diffs actually change, and always labeled `semantic` — the tool never invents a reconciliation. The audit is advisory by design: `--strict` makes error findings a non-zero exit where a team wants a gate.
+
 ## Demo
 
 CI demonstrates both analysis commands against two public example codebases — [ErpLight](https://github.com/DevelApp-ai/ErpLight) (plugin-module ERP) and [RuntimePluggableClassFactory](https://github.com/DevelApp-ai/RuntimePluggableClassFactory) (runtime pluggable class factory) — and uploads the generated maps, findings, and ledgers as workflow artifacts.
@@ -277,9 +329,11 @@ The cockpit demo is also in-repo: [`demo/StranglerApp`](demo/README.md), a small
 
 The events demo is in-repo too: [`demo/EventApp`](demo/README.md), a small eventing app with a compliant `OrderEventsConsumer` (dedup, dead letters, old-schema tolerance) and `Outbox`, two event contracts — `order.placed` v2 with a v1 skew replay, and `invoice.issued` v1 — plus two deliberately regressed variants: a naive consumer (no dedup, crashes on poison, refuses old versions) and a fire-and-forget outbox (publishes vanish, dispatches leave no bookkeeping). CI generates the suite, runs it green against the good app, then swaps each broken variant in and asserts the suite **fails** with `EventConformance.ConsumerProbes` / `EventConformance.OutboxProbes` — the #60 done-when: seeded faults visibly fail a naive consumer and pass a compliant one.
 
+The plan-audit demo is in-repo too: [`demo/PlanAudit`](demo/README.md), a small QuoteTree estate with two spec areas (quote, billing) mapped to their code areas and four committed diff pairs: a conformant control, an omission (the billing spec gains "invoices are exportable as PDF" that no generated change implements), an unapproved addition (a surprise fee appears in `InvoiceService`), and a cross-area pair (the audit-trail requirement implemented in a new file outside the map's coverage) that only a labeled semantic match reconciles. CI runs all four — the control is silent, each seeded discrepancy fires with its line-anchored citation, and regeneration is byte-identical — the #64 done-when: the auditor bites on omission and unapproved addition and stays silent on a conformant pair, deterministically.
+
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness).
+See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor).
 
 ## License
 

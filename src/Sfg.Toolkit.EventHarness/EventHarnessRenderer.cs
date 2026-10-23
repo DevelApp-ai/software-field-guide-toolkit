@@ -9,7 +9,7 @@ namespace Sfg.Toolkit.EventHarness;
 /// </summary>
 public static class EventHarnessRenderer
 {
-    public const string Generator = "sfg events 0.4.0";
+    public const string Generator = "sfg events 0.5.0";
 
     public static string Markdown(EventHarnessConfig config, ConventionScan scan, EventHarnessSuite suite)
     {

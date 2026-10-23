@@ -1,109 +1,37 @@
-# Demos
+# Demo estates
 
-Three in-repo applications demonstrate the tools' done-when proofs — all are
-deliberately small, all are exercised in CI, and all carry deliberately
-broken variants that must make the generated suites fail loudly.
+Small in-repo demonstration estates for the `sfg` commands. Each one exists so CI can prove
+its command **bites**: the good app passes, and a deliberately regressed variant fails with
+the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`) is
+never committed — CI regenerates it and uploads the manifest/board as the workflow artifact.
 
-## Multitenant isolation probes (#58)
+## [EventApp](EventApp) — `sfg events` (#60)
 
-`MultitenantApp` is a small but realistic EF Core application — the probe
-target for `sfg tenant-probes`. It carries exactly two isolation mechanisms
-the generated suite defends:
+A small eventing app: a compliant `OrderEventsConsumer` (dedup, dead letters, old-schema
+tolerance) and an `Outbox`, two event contracts — `order.placed` v2 with a v1 skew replay,
+and `invoice.issued` v1. CI generates the conformance suite, runs it green against the good
+app, then swaps in a naive consumer and a fire-and-forget outbox from
+[`broken/`](broken) and asserts the suite **fails** — the #60 done-when.
 
-1. **Global query filter** per entity (`HasQueryFilter` on `TenantId`),
-2. **Fail-closed SaveChanges guard** (foreign-tenant writes throw; with no
-   tenant context, nothing is written).
+## [MultitenantApp](MultitenantApp) — `sfg tenant-probes` (#58)
 
-Conventions the target must satisfy (also documented in the README):
+A small EF Core app with a per-tenant query filter and a fail-closed `SaveChanges` guard.
+CI generates the probe suite, runs it green, then swaps in the query-filter-removed and
+save-guard-removed variants from [`broken/`](broken) and asserts the probes **fail** —
+the #58 done-when.
 
-- `AppDbContext` has a constructor accepting `DbContextOptions`,
-- `AppDbContext` exposes a settable `CurrentTenantId` (the ambient tenant),
-- every probed entity has a settable `TenantId` property and a
-  parameterless constructor.
+## [StranglerApp](StranglerApp) — `sfg cockpit` (#56)
 
-`broken/` holds two deliberately regressed variants of the same context,
-stored outside the compile scope so they never build together with the real
-one:
+A small strangler-fig app whose `shipping.quote` route is strangled end to end — promoted
+at the routing pivot, shadow-diffed green, and retired below the traffic threshold, so the
+sunset tripwire fires. CI also runs a drifted implementation, an unwired route, and a
+strangled route whose traffic contradicts the claim — the #56 done-when.
 
-- `AppDbContext.NoFilter.cs` — query filter removed (reads leak),
-- `AppDbContext.NoGuard.cs` — save guard removed (writes leak).
+## [PlanAudit](PlanAudit) — `sfg plan-audit` (#64)
 
-CI copies the app, swaps a broken variant in over `AppDbContext.cs`,
-regenerates the probes, and asserts the probe suite FAILS — the done-when
-proof for #58: isolation regressions fail loudly, by construction.
-
-## Strangler-fig migration cockpit (#56)
-
-`StranglerApp` is a small strangler-fig application — the target for
-`sfg cockpit`. It has a routing pivot (`MigrationPivot`), three wired
-routes, and one route strangled end to end:
-
-- `orders.search` — strangling: legacy handler still serves, new
-  implementation shadows it against the declared cases within tolerance,
-- `orders.get` — todo: legacy only, the fig has not started,
-- `shipping.quote` — strangled: promoted at the pivot
-  (`pivot.Promote("shipping.quote")`), shadow-diffed green against the
-  retired legacy handler, and its old-implementation traffic
-  `[4200, 3100, 1400, 210, 90, 0, 0, 0]` has stayed under the retirement
-  threshold (100) for the sunset window (3 periods) — so the sunset
-  tripwire fires: the #56 done-when, one route strangled with the
-  tripwire armed and firing.
-
-Handlers follow the shadow-diff convention: `string Handle(string input)`
-with JSON in and JSON out. The legacy implementations round totals to
-cents; the new implementations report at mill precision — the same math,
-different rendering, absorbed by the declared numeric tolerance
-(`total ± 0.01`, `quote ± 0.01`); `servedBy` and `elapsedMs` are ignored.
-
-`broken/` holds three deliberately regressed variants, stored outside the
-compile scope so they never build together with the real ones:
-
-- `OrdersSearchService.Drifted.cs` — the new implementation drifted 5%
-  above the legacy totals: the generated shadow-diff suite must FAIL with
-  `SHADOW DRIFT on route 'orders.search'`,
-- `migration.UnwiredRoute.json` — the route table declares a `promo.code`
-  route the pivot never wires: `sfg cockpit --strict` must exit non-zero
-  with a `migration/unwired-route` error,
-- `migration.LyingStrangled.json` — `shipping.quote` is declared strangled
-  but its traffic never retired below the threshold: `sfg cockpit` must
-  report the `migration/strangle-unfinished` error.
-
-CI runs the good app end to end (cockpit board + tripwire + shadow suite
-green), proves the outputs are byte-identical on regeneration, then swaps
-each broken variant in and asserts the tool bites.
-
-## Event contract conformance harness (#60)
-
-`EventApp` is a small eventing application — the target for
-`sfg events`. It carries a compliant `OrderEventsConsumer` (dedupes by
-message id, routes poison to the dead letters, tolerates old-schema
-replays) and a compliant `Outbox` (a publish waits in the pending queue;
-double dispatch stays idempotent), plus two event contracts:
-
-- `order.placed` — version 2, three case payloads, and a declared
-  `previousVersion` 1 with two old-schema skew cases,
-- `invoice.issued` — version 1, two case payloads, no skew.
-
-Conventions the target must satisfy (also documented in the README):
-
-- the consumer exposes `Handle(string message)`, `AppliedEffects`
-  (applied message ids, deduplicated), and `DeadLetters` (raw
-  dead-lettered messages), with a parameterless constructor,
-- the outbox (optional) exposes `Publish(string)`,
-  `MarkDispatched(string)`, `Pending`, and `Dispatched`.
-
-`broken/` holds two deliberately regressed variants, stored outside the
-compile scope so they never build together with the real ones:
-
-- `OrderEventsConsumer.Naive.cs` — no dedup (duplicates apply twice),
-  crashes on poison payloads, and refuses old versions outright: the
-  generated conformance suite must FAIL with
-  `Failed EventConformance.ConsumerProbes`,
-- `Outbox.FireAndForget.cs` — publishes vanish and dispatches leave no
-  bookkeeping: the suite must FAIL with
-  `Failed EventConformance.OutboxProbes`.
-
-CI runs the good app end to end (board + suite green), proves the
-outputs are byte-identical on regeneration, then swaps each broken
-variant in and asserts the suite bites — the #60 done-when: seeded
-faults visibly fail a naive consumer and pass a compliant one.
+A small QuoteTree estate with two spec areas (quote, billing) mapped to their code areas,
+and four committed diff pairs: a conformant control, an **omission** (an approved spec
+change no generated change implements), an **unapproved addition** (a generated change with
+no spec basis), and a cross-area pair only a labeled semantic match reconciles. CI runs all
+four — the control is silent, each seeded discrepancy fires with its line-anchored
+citation, and regeneration is byte-identical — the #64 done-when.

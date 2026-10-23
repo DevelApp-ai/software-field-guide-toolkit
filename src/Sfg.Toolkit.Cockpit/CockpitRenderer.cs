@@ -11,7 +11,7 @@ namespace Sfg.Toolkit.Cockpit;
 /// </summary>
 public static class CockpitRenderer
 {
-    public const string Generator = "sfg cockpit 0.4.0";
+    public const string Generator = "sfg cockpit 0.5.0";
 
     public static string Markdown(CockpitReport report, MigrationConfig config)
     {

@@ -1,0 +1,10 @@
+# Quote orders (customer-facing)
+
+Service: QuoteTree.Quote
+
+Acceptance criteria live in quote-order.test.
+
+Intent:
+- R1: The total is the sum of all line items, two decimal places.
+- R2: A quote is valid for 30 days from the moment it is issued.
+- R3: A quote identifies the customer it was issued to.
