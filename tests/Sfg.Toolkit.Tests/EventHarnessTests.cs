@@ -260,7 +260,7 @@ public sealed class EventHarnessTests : IDisposable
         var manifest = GenerateSuite().Suite.Files.First(f => f.Path == "manifest.json").Content;
         using var document = JsonDocument.Parse(manifest);
         var root = document.RootElement;
-        Assert.Equal("sfg events 0.4.0", root.GetProperty("generator").GetString());
+        Assert.Equal("sfg events 0.5.0", root.GetProperty("generator").GetString());
         Assert.Equal("OrdersConsumer", root.GetProperty("consumer").GetProperty("name").GetString());
         Assert.Equal(3, root.GetProperty("consumer").GetProperty("line").GetInt32());
         Assert.Equal("Outbox", root.GetProperty("outbox").GetProperty("name").GetString());
@@ -313,7 +313,7 @@ public sealed class EventHarnessTests : IDisposable
         var (config, scan, suite) = GenerateSuite();
         var json = EventHarnessRenderer.Json(config, scan, suite);
         using var document = JsonDocument.Parse(json);
-        Assert.Equal("sfg events 0.4.0", document.RootElement.GetProperty("generator").GetString());
+        Assert.Equal("sfg events 0.5.0", document.RootElement.GetProperty("generator").GetString());
         Assert.Equal(2, document.RootElement.GetProperty("events").GetArrayLength());
         Assert.Equal(json, EventHarnessRenderer.Json(config, scan, GenerateSuite().Suite));
     }

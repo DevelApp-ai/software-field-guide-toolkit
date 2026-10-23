@@ -4,6 +4,7 @@ using Sfg.Toolkit.ContextMap;
 using Sfg.Toolkit.EventHarness;
 using Sfg.Toolkit.Core.Analysis;
 using Sfg.Toolkit.Core.CodeTruth;
+using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.SeamLedger;
 using Sfg.Toolkit.TenantProbes;
 
@@ -27,8 +28,10 @@ try
             return RunCockpit(args[1..]);
         case "events":
             return RunEvents(args[1..]);
+        case "plan-audit":
+            return RunPlanAudit(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.4.0");
+            Console.WriteLine("sfg 0.5.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -40,6 +43,38 @@ catch (Exception exception)
 {
     Console.Error.WriteLine($"error: {exception.Message}");
     return 1;
+}
+
+static int RunPlanAudit(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config") ?? Path.Combine(root, "plan-audit.json");
+    var specDiffPath = Option(args, "--spec-diff");
+    var codeDiffPath = Option(args, "--code-diff");
+    var semanticPath = Option(args, "--semantic");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "plan-audit");
+    var strict = HasFlag(args, "--strict");
+
+    if (specDiffPath is null || codeDiffPath is null)
+    {
+        throw new ArgumentException(
+            "plan-audit needs both diffs: --spec-diff <intent-PR.diff> --code-diff <implementation-PR.diff>");
+    }
+
+    var config = PlanAuditConfig.Load(configPath);
+    var specFiles = UnifiedDiff.Parse(specDiffPath);
+    var codeFiles = UnifiedDiff.Parse(codeDiffPath);
+    var semantic = PlanAuditAnalyzer.LoadSemantic(semanticPath);
+    var report = PlanAuditAnalyzer.Analyze(config, specFiles, codeFiles, semantic);
+
+    WriteFile(outDir, "plan-audit.md", PlanAuditRenderer.Markdown(config, report));
+    WriteFile(outDir, "plan-audit.json", PlanAuditRenderer.Json(config, report));
+
+    Console.WriteLine($"plan-audit: {report.SpecFiles.Count} spec change(s), {report.CodeFiles.Count} code change(s), " +
+                      $"{report.Matches.Count} match(es), {report.Findings.Count} finding(s) " +
+                      $"({report.Errors} errors, {report.Warnings} warnings) — advisory: exit 0");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "plan-audit.md")}, {Path.Combine(outDir, "plan-audit.json")}");
+    return strict && report.Errors > 0 ? 1 : 0;
 }
 
 static int RunContextMap(string[] args)
@@ -173,7 +208,7 @@ static string RequiredRoot(string[] args)
     string? root = null;
     for (var i = 0; i < args.Length; i++)
     {
-        if (args[i] is "--config" or "--out" or "--evidence")
+        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic")
         {
             i++;
             continue;
@@ -253,6 +288,16 @@ static void PrintHelp()
               producer replay, and outbox health on the producer side.
               Emits events.md, events.json, and the suite — run with:
               dotnet test.
+
+          sfg plan-audit <root> --spec-diff <intent.diff> --code-diff <impl.diff>
+                          [--config <plan-audit.json>] [--semantic <matches.json>]
+                          [--out <dir>] [--strict]
+              Audits the implementation diff against the approved spec diff
+              (#64): reports omissions (spec changes with no generated
+              change) and unapproved additions (generated changes with no
+              spec basis), line-anchored on both sides. Advisory by default;
+              --strict exits non-zero on error-severity findings. Emits
+              plan-audit.md and plan-audit.json.
 
           sfg --version
 

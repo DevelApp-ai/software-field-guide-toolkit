@@ -1,0 +1,8 @@
+# Quote orders - acceptance criteria
+
+- Given a cart with two line items 100.00 and 49.50,
+  then the quoted total is 149.50.
+- Given a quote issued 30+1 days ago,
+  then the quote is no longer valid.
+- Given a quote for customer "nordisk-mobler",
+  then the quote carries the customer id.

@@ -14,5 +14,6 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.TenantProbes\Sfg.Toolkit.TenantProbes.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.Cockpit\Sfg.Toolkit.Cockpit.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.EventHarness\Sfg.Toolkit.EventHarness.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.PlanAudit\Sfg.Toolkit.PlanAudit.csproj" />
   </ItemGroup>
 </Project>

@@ -331,3 +331,106 @@ jobs:
           name: sfg-events-manifest
           path: events-good/manifest.json
           if-no-files-found: error
+
+  demo-planaudit:
+    name: plan auditor bites on the QuoteTree demo estate
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # planaudit-*/ are generated output and never committed; the conformant
+      # control board is uploaded as the artifact.
+      - name: Control audit is silent on a conformant pair
+        run: |
+          set -eu
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/control.spec.patch \
+            --code-diff demo/PlanAudit/diffs/control.code.patch \
+            --out planaudit-control
+          grep -q "Conformant" planaudit-control/plan-audit.md
+          test "$(jq '.errors' planaudit-control/plan-audit.json)" -eq 0
+
+      - name: Omission bites with a line anchor on the spec side
+        run: |
+          set -eu
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/omission.spec.patch \
+            --code-diff demo/PlanAudit/diffs/omission.code.patch \
+            --out planaudit-omission
+          grep -q "plan/omission" planaudit-omission/plan-audit.md
+          grep -q "specs/billing/invoice.ai:10" planaudit-omission/plan-audit.md
+          test "$(jq '.errors' planaudit-omission/plan-audit.json)" -eq 1
+
+      - name: Unapproved addition bites with a line anchor on the code side
+        run: |
+          set -eu
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/addition.spec.patch \
+            --code-diff demo/PlanAudit/diffs/addition.code.patch \
+            --out planaudit-addition
+          grep -q "plan/unapproved-addition" planaudit-addition/plan-audit.md
+          grep -q "src/QuoteTree/Billing/InvoiceService.cs:7" planaudit-addition/plan-audit.md
+          test "$(jq '.errors' planaudit-addition/plan-audit.json)" -eq 1
+
+      - name: Advisory by default, strict bites
+        run: |
+          set +e
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/omission.spec.patch \
+            --code-diff demo/PlanAudit/diffs/omission.code.patch \
+            --out planaudit-om2 --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "STRICT DID NOT BITE: omission errors passed --strict"; exit 1
+          fi
+
+      - name: Semantic matches resolve only with valid anchors
+        run: |
+          set -eu
+          # without --semantic the cross-area pair fires both discrepancy classes
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/semantic.spec.patch \
+            --code-diff demo/PlanAudit/diffs/semantic.code.patch \
+            --out planaudit-semraw
+          grep -q "plan/omission" planaudit-semraw/plan-audit.md
+          grep -q "plan/unapproved-addition" planaudit-semraw/plan-audit.md
+          # with it, the labeled semantic match reconciles both sides
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/semantic.spec.patch \
+            --code-diff demo/PlanAudit/diffs/semantic.code.patch \
+            --semantic demo/PlanAudit/semantic.json \
+            --out planaudit-sem
+          grep -q "Conformant" planaudit-sem/plan-audit.md
+          grep -q '"provenance": "semantic"' planaudit-sem/plan-audit.json
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg plan-audit demo/PlanAudit/estate \
+            --spec-diff demo/PlanAudit/diffs/omission.spec.patch \
+            --code-diff demo/PlanAudit/diffs/omission.code.patch \
+            --out planaudit-rerun
+          cmp planaudit-omission/plan-audit.md planaudit-rerun/plan-audit.md
+          cmp planaudit-omission/plan-audit.json planaudit-rerun/plan-audit.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-planaudit-board
+          path: planaudit-control/
+          if-no-files-found: error

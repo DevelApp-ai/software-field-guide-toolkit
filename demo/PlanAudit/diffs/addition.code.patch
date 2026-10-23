@@ -1,0 +1,32 @@
+diff --git a/src/QuoteTree/Quote/QuoteService.cs b/src/QuoteTree/Quote/QuoteService.cs
+index 1111111..2222222 100644
+--- a/src/QuoteTree/Quote/QuoteService.cs
++++ b/src/QuoteTree/Quote/QuoteService.cs
+@@ -6,9 +6,10 @@
+ {
+     public QuoteIssue Quote(IReadOnlyList<LineItem> items, string customerId)
+     {
+-        var total = items.Sum(i => i.Price * i.Quantity);
+-        return new QuoteIssue(total, customerId, DateTime.UtcNow.AddDays(30));
++        var vatRate = 0.25m;
++        var total = items.Sum(i => i.Price * i.Quantity) * (1 + vatRate);
++        return new QuoteIssue(total, customerId, DateTime.UtcNow.AddDays(30), vatRate);
+     }
+ }
+ 
+-public sealed record QuoteIssue(decimal Total, string CustomerId, DateTime ValidUntil);
++public sealed record QuoteIssue(decimal Total, string CustomerId, DateTime ValidUntil, decimal VatRate);
+diff --git a/src/QuoteTree/Billing/InvoiceService.cs b/src/QuoteTree/Billing/InvoiceService.cs
+index 1111111..2222222 100644
+--- a/src/QuoteTree/Billing/InvoiceService.cs
++++ b/src/QuoteTree/Billing/InvoiceService.cs
+@@ -4,7 +4,8 @@
+ {
+     public Invoice Issue(decimal totalDue, string quoteId, DateTime paymentDeadline)
+     {
+-        return new Invoice(quoteId, totalDue, paymentDeadline, isPaid: false);
++        var surpriseFee = totalDue * 0.01m;
++        return new Invoice(quoteId, totalDue + surpriseFee, paymentDeadline, isPaid: false);
+     }
+ }
+ 

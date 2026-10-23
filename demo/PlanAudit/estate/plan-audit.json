@@ -1,0 +1,16 @@
+{
+  "project": "src/QuoteTree/QuoteTree.csproj",
+  "map": [
+    {
+      "spec": "specs/quote/",
+      "code": "src/QuoteTree/Quote/"
+    },
+    {
+      "spec": "specs/billing/",
+      "code": "src/QuoteTree/Billing/"
+    }
+  ],
+  "allowedUnmappedCode": [
+    "src/QuoteTree/QuoteTree.csproj"
+  ]
+}

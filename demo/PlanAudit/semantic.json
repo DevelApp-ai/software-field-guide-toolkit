@@ -1,0 +1,9 @@
+{
+  "matches": [
+    {
+      "spec": "specs/quote/quote-order.ai:11",
+      "code": "src/QuoteTree/Billing/AuditTrail.cs:1",
+      "note": "R5's audit trail is implemented by the new AuditTrail class, outside the declared quote-area map."
+    }
+  ]
+}

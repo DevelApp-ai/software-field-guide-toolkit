@@ -1,0 +1,9 @@
+# Invoicing (billing)
+
+Service: QuoteTree.Billing
+Acceptance criteria live in invoice.test.
+
+Intent:
+- R1: An invoice references exactly one accepted quote.
+- R2: An invoice states the total due and the payment deadline.
+- R3: A paid invoice is marked paid and never re-issued.
