@@ -516,3 +516,129 @@ jobs:
           name: sfg-eval-board
           path: eval-good/
           if-no-files-found: error
+
+  demo-migrationlint:
+    name: migration linter bites on the MigrationApp demo estate
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # ml-good/, ml-rerun/, ml-naive/, ml-destructive/, ml-nogate/,
+      # ml-unmeasured/, ml-rush/ are generated output and never committed; the
+      # clean control board is uploaded as the artifact.
+      - name: Control run is silent on the clean demo estate
+        run: |
+          set -eu
+          ./.tools/sfg migration-lint demo/MigrationApp --out ml-good
+          grep -q "Clean history" ml-good/migration-lint.md
+          grep -q "Orders.ShippingAddress" ml-good/migration-lint.md
+          grep -q "2026-05-25" ml-good/migration-lint.md
+          test "$(jq '.errors' ml-good/migration-lint.json)" -eq 0
+          test "$(jq '.warnings' ml-good/migration-lint.json)" -eq 0
+          test "$(jq '.migrations | length' ml-good/migration-lint.json)" -eq 5
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg migration-lint demo/MigrationApp --out ml-rerun
+          cmp ml-good/migration-lint.md ml-rerun/migration-lint.md
+          cmp ml-good/migration-lint.json ml-rerun/migration-lint.json
+
+      - name: The gate bites on a naive unbatched backfill
+        run: |
+          set -eu
+          rm -rf /tmp/ml-naive-app && cp -r demo/MigrationApp /tmp/ml-naive-app
+          cp demo/broken/BackfillDeliveryAddress.Naive.cs /tmp/ml-naive-app/Migrations/20260310100000_BackfillDeliveryAddress.cs
+          set +e
+          ./.tools/sfg migration-lint /tmp/ml-naive-app --out ml-naive --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the naive backfill passed --strict"; exit 1
+          fi
+          grep -q "migration/naive-backfill" ml-naive/migration-lint.md
+          grep -qE ':[0-9]+`' ml-naive/migration-lint.md
+          test "$(jq '.errors' ml-naive/migration-lint.json)" -eq 1
+
+      - name: The gate bites on destructive-first ordering
+        run: |
+          set -eu
+          rm -rf /tmp/ml-destructive-app && cp -r demo/MigrationApp /tmp/ml-destructive-app
+          cp demo/broken/RemoveShippingAddress.DestructiveFirst.cs /tmp/ml-destructive-app/Migrations/20260601100000_RemoveShippingAddress.cs
+          set +e
+          ./.tools/sfg migration-lint /tmp/ml-destructive-app --out ml-destructive --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the destructive-first migration passed --strict"; exit 1
+          fi
+          grep -q "migration/destructive-first" ml-destructive/migration-lint.md
+          grep -q "migration/drop-not-isolated" ml-destructive/migration-lint.md
+          grep -qE ':[0-9]+`' ml-destructive/migration-lint.md
+          test "$(jq '.errors' ml-destructive/migration-lint.json)" -eq 1
+          test "$(jq '.warnings' ml-destructive/migration-lint.json)" -eq 1
+
+      - name: The gate bites on an ungated contract step
+        run: |
+          set -eu
+          rm -rf /tmp/ml-nogate-app && cp -r demo/MigrationApp /tmp/ml-nogate-app
+          cp demo/broken/20260602100000_RemoveLegacyTotal.cs /tmp/ml-nogate-app/Migrations/
+          set +e
+          ./.tools/sfg migration-lint /tmp/ml-nogate-app --out ml-nogate --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the ungated removal passed --strict"; exit 1
+          fi
+          grep -q "migration/contract-without-gate" ml-nogate/migration-lint.md
+          grep -q "Orders.LegacyTotal" ml-nogate/migration-lint.md
+          grep -qE ':[0-9]+`' ml-nogate/migration-lint.md
+          test "$(jq '.errors' ml-nogate/migration-lint.json)" -eq 1
+
+      - name: The gate bites on an unmeasured compatibility window
+        run: |
+          set +e
+          ./.tools/sfg migration-lint demo/MigrationApp --gates demo/broken/migration-gates.Unmeasured.json --out ml-unmeasured --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the unmeasured window passed --strict"; exit 1
+          fi
+          grep -q "migration/removal-without-window" ml-unmeasured/migration-lint.md
+          grep -qE ':[0-9]+`' ml-unmeasured/migration-lint.md
+          test "$(jq '.errors' ml-unmeasured/migration-lint.json)" -eq 1
+
+      - name: The gate bites on a removal before the window is cold
+        run: |
+          set +e
+          ./.tools/sfg migration-lint demo/MigrationApp --gates demo/broken/migration-gates.Rush.json --out ml-rush --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the rushed removal passed --strict"; exit 1
+          fi
+          grep -q "migration/removal-before-cold" ml-rush/migration-lint.md
+          grep -q "deliberately late" ml-rush/migration-lint.md
+          grep -qE ':[0-9]+`' ml-rush/migration-lint.md
+          test "$(jq '.errors' ml-rush/migration-lint.json)" -eq 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-migration-lint-board
+          path: ml-good/
+          if-no-files-found: error
