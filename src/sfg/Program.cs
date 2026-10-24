@@ -6,6 +6,7 @@ using Sfg.Toolkit.Core.Analysis;
 using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.EvalHarness;
+using Sfg.Toolkit.MigrationLint;
 using Sfg.Toolkit.SeamLedger;
 using Sfg.Toolkit.TenantProbes;
 
@@ -33,8 +34,10 @@ try
             return RunPlanAudit(args[1..]);
         case "eval":
             return RunEval(args[1..]);
+        case "migration-lint":
+            return RunMigrationLint(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.6.0");
+            Console.WriteLine("sfg 0.7.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -46,6 +49,30 @@ catch (Exception exception)
 {
     Console.Error.WriteLine($"error: {exception.Message}");
     return 1;
+}
+
+static int RunMigrationLint(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config");
+    var gatesOverride = Option(args, "--gates");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "migration-lint");
+    var strict = HasFlag(args, "--strict");
+
+    var config = MigrationLintConfig.Load(configPath, root, gatesOverride);
+    var migrations = MigrationParser.Parse(config.MigrationsFullPath);
+    var report = MigrationLintAnalyzer.Analyze(config, migrations);
+
+    WriteFile(outDir, "migration-lint.md", MigrationLintRenderer.Markdown(config, report));
+    WriteFile(outDir, "migration-lint.json", MigrationLintRenderer.Json(config, report));
+
+    Console.WriteLine($"migration-lint: {report.Migrations.Count} migration(s) in {config.MigrationsDir}/, " +
+                      $"{report.StatementCount} statement(s) — {report.Count(MigrationKind.Expand)} expand, " +
+                      $"{report.Count(MigrationKind.Migrate)} migrate, {report.Count(MigrationKind.Contract)} contract, " +
+                      $"{(report.Gates is null ? "no gates ledger" : $"{report.Gates.Passes.Count} gate pass(es)")}, " +
+                      $"{report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings) — advisory: exit 0");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "migration-lint.md")}, {Path.Combine(outDir, "migration-lint.json")}");
+    return strict && report.Errors > 0 ? 1 : 0;
 }
 
 static int RunEval(string[] args)
@@ -240,7 +267,7 @@ static string RequiredRoot(string[] args)
     string? root = null;
     for (var i = 0; i < args.Length; i++)
     {
-        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results")
+        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results" or "--gates")
         {
             i++;
             continue;
@@ -341,6 +368,18 @@ static void PrintHelp()
               rewrites the baseline file from this run (commit it
               deliberately); --strict exits non-zero on error-severity
               findings. Emits eval.md and eval.json.
+
+          sfg migration-lint <root> [--config <migration-lint.json>]
+                              [--gates <migration-gates.json>] [--out <dir>]
+                              [--strict]
+              Lints the committed migration history (#67): classifies every
+              statement expand (additive), migrate (rewiring), or contract
+              (removing/tightening), and checks each contract step against the
+              gates ledger — a removal needs a measured window (expanded, then
+              cold) and happens deliberately late. Flags destructive-first
+              ordering and naive unbatched backfills. Advisory by default;
+              --strict exits non-zero on error-severity findings. Emits
+              migration-lint.md and migration-lint.json.
 
           sfg --version
 
