@@ -2,7 +2,7 @@
 
 Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Seven commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64), and [#66](https://github.com/DevelApp-ai/software-field-guide/issues/66):
+Nine commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64), [#66](https://github.com/DevelApp-ai/software-field-guide/issues/66), [#67](https://github.com/DevelApp-ai/software-field-guide/issues/67), and [#68](https://github.com/DevelApp-ai/software-field-guide/issues/68):
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
@@ -14,6 +14,7 @@ Seven commands ship today, mapping to book issues [#54](https://github.com/Devel
 | `sfg plan-audit` | #64 Plan-conformance auditor | Reconciles the approved spec diff (the intent PR's `.ai`/`.test` changes) against the generated code diff (the implementation PR) through a declared spec-to-code coverage map, and reports the two discrepancy classes — **omission** (an approved spec change no generated change implements) and **unapproved addition** (a generated change with no spec basis) — line-anchored on both sides, ranked errors-first and capped. Advisory by default; `--strict` exits non-zero on errors. LLM-assisted semantic matches are accepted only with valid anchors on both sides and are always labeled. |
 | `sfg eval` | #66 LLM evaluation harness runner and baseline gate | Judges a **recorded** run (a committed `results.json`) against the suite's committed labeled set: aggregates per-stage metrics, calibrates the judge against the human-labeled sample (abstains never count as agreement), and gates against both the declared thresholds and the committed baseline — a regression cites the cases that moved, never just the aggregate. Dropped cases, undeclared cases, duplicate results, and stray metrics are loud errors. `--update-baseline` re-baselines deliberately. The harness never calls a model — wiring a live system means producing a results file in the documented format. |
 | `sfg migration-lint` | #67 Expand-migrate-contract migration linter | Parses the committed EF Core migration history, classifies every statement expand (additive), migrate (rewiring), or contract (removing/tightening), and checks each contract step against the gates ledger: a removal needs a gate pass with a measured window (expandedAt, then coldAt) and happens deliberately late. Flags destructive-first ordering (drop-then-reference, drop-then-re-add) and naive unbatched backfills. Advisory by default; `--strict` exits non-zero on errors. |
+| `sfg dora` | #68 DORA four-key extractor | Extracts the DORA four keys from a **recorded** events export (deployments, changes, builds, failures) — it never calls an API live. Verifies every join the keys depend on (deployment → change → build, failure → restore evidence), flags re-runs mislabeled as new deployments (excluded from every count), and trends deployment frequency, lead time, change failure rate, and restore time per day, ISO week, or month against a versioned definitions file. Trends, not scores. Advisory by default; `--strict` exits non-zero on errors. |
 
 The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator, the shadow-diff suite, and the event conformance suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration / messaging claim is already broken.
 
@@ -55,6 +56,9 @@ sfg eval /path/to/suite --out eval
 # migration linter: expand/migrate/contract against the gates ledger
 sfg migration-lint /path/to/app --out migration-lint
 
+# DORA four keys: verified joins, trended series from a recorded export
+sfg dora /path/to/app --out dora
+
 # all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
@@ -78,6 +82,10 @@ sfg migration-lint /path/to/app --out migration-lint
 #   defaults to <root>/migration-lint.json when the file exists, and --gates
 #   to judge against a different gates ledger (e.g. a seeded broken one);
 #   --strict exits 1 on error-severity findings (default: advisory, exit 0)
+# dora also accepts --config dora.json (see below); it defaults to
+#   <root>/dora.json when the file exists, and --events to read a different
+#   recorded export (e.g. a seeded broken one); --strict exits 1 on
+#   error-severity findings (default: advisory, exit 0)
 ```
 
 ### Outputs
@@ -138,6 +146,12 @@ sfg migration-lint /path/to/app --out migration-lint
 
 - `migration-lint.md` — the human board: the migration timeline (one row per file, classified expand/migrate/contract), the compatibility windows table (one row per gate pass: gate, expandedAt, coldAt, consumers, and the drop date), and findings sorted errors-first with `file:line` citations on both the migration and the ledger. A clean history renders the explicit `✅ Clean history` line.
 - `migration-lint.json` — the machine summary: generator, migrations, gates, findings with rule/severity/message/evidence, error and warning counts.
+
+`dora` writes the four-key board:
+
+- `dora.md` — the human board: the joins table (every join the four keys depend on, with verified/total counts and the rule that guards it), the per-period time series (deployments, changes shipped, lead time, failure rate, restore time), the excluded re-runs, and findings sorted errors-first with `file:line` citations into the export. A clean export renders the explicit `✅ Clean export` line.
+- `dora.json` — the machine summary: generator, definition version, counts, verified joins, the series, findings with rule/severity/message/evidence, error and warning counts.
+- `dora-definitions.json` — the versioned definitions file (`dora-definitions-v1`): the four keys, the joins, the failure taxonomy (revert/rollback/hotfix and the evidence each demands), the re-run rule, the periods, and the trend policy. Deterministic and byte-identical on regeneration — commit it next to the export it defines.
 
 ### Route table (`migration.json`, the cockpit's required input)
 
@@ -321,6 +335,43 @@ Cases carrying a `human` label (`correct`/`incorrect`) form the human-labeled sa
 
 Malformed ledgers are loud errors (objects must be `Table.Column`, dates must be `yyyy-MM-dd`, passes must be unique, consumers non-empty) — never a guess. `--gates` judges the same history against a different ledger without touching the committed one.
 
+### DORA events export and config (`dora-events.json`, `dora.json`, the extractor's inputs)
+
+The extractor reads a committed, **recorded** export — it never calls an API live; wiring a live system means producing an export in the documented format. `dora.json` is optional (`events` and `period` default as shown; `maxFindings` caps the rendered findings list):
+
+```json
+{
+  "events": "dora-events.json",
+  "period": "week"
+}
+```
+
+`dora-events.json` records the four event classes the keys join — `deployments` (each with the PRs its compare range says it ships), `changes` (merged PRs with their merge shas), `builds` (CI runs observing shas; attempts deduplicate per workflow per sha), and `failures` (incidents with their restore taxonomy: `revert`/`rollback`/`hotfix` and the evidence each mode demands — a revert or hotfix names the PR merged inside the incident window; a rollback names the earlier deployment of a different target sha):
+
+```json
+{
+  "deployments": [
+    { "id": "v2.1.0", "environment": "release", "deployedAt": "2025-11-04T19:18:16Z",
+      "targetSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509", "prs": [22] }
+  ],
+  "changes": [
+    { "pr": 22, "title": "Fix semantic versioning and test plugin loading",
+      "mergedAt": "2025-11-04T19:17:18Z", "mergeSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509" }
+  ],
+  "builds": [
+    { "run": 144, "workflow": ".NET CI/CD", "headSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509",
+      "conclusion": "success", "completedAt": "2025-11-04T19:18:10Z" }
+  ],
+  "failures": [
+    { "id": "leap-day-theme-liquid-conflict", "mode": "hotfix", "deployment": "v2.0.7",
+      "detectedAt": "2025-10-26T21:30:00Z", "restoredAt": "2025-10-27T00:20:40Z",
+      "evidence": { "hotfixPr": 18 } }
+  ]
+}
+```
+
+Timestamps are ISO 8601 UTC; a missing array, an invalid timestamp, or a duplicate id is a loud error — never a guess. An empty `prs` list is legal (a verified-empty direct commit). `--events` reads a different recorded export without touching the committed one.
+
 ### Conventions the events target must satisfy
 
 - the consumer exposes `Handle(string message)` — one delivery, one call,
@@ -414,6 +465,21 @@ Migration linter:
 | `migration/removal-before-cold` | error | the drop runs before the pass measured the old column cold — the drop is deliberately late, after the window closed |
 | `migration/drop-not-isolated` | warning | a contract migration mixes expand/migrate statements — one migration, one revert |
 
+DORA extractor:
+
+| Rule | Severity | Fires when |
+| --- | --- | --- |
+| `dora/dangling-join` | error | a deployment ships a PR that is not in the changes — the deployment→change join dangles |
+| `dora/temporal-join-violation` | error | a change merged after the deployment that claims to ship it — a cause cannot land after its effect |
+| `dora/unbuilt-deployment` | error | a deployment's target sha was never observed by a successful CI run — the release is unbuilt |
+| `dora/re-run-mislabeled` | error | two deployments of the same environment at the same target sha — the later row is a re-run mislabeled as a new deployment; flagged and excluded from every count |
+| `dora/unknown-failure-mode` | error | a failure's restore mode is outside the taxonomy (revert, rollback, hotfix) — an unclassifiable restore is not a restore yet |
+| `dora/unevidenced-failure` | error | a failure's mode evidence does not check out — the revert/hotfix PR does not resolve inside the incident window, or the rollback does not target an earlier deployment of a different sha |
+| `dora/dangling-failure-join` | error | a failure names a deployment that does not exist |
+| `dora/restore-before-detection` | error | a failure was restored before it was detected — service cannot return before it left |
+| `dora/change-without-build` | warning | a merged change's merge sha was never observed by a CI run — the change is unverified by the pipeline |
+| `dora/unshipped-change` | warning | a merged change is shipped by no deployment — it never reached an environment in this export |
+
 ## Honest evaluation status
 
 - **Syntax-level analysis.** The scanner uses Roslyn (`ParseText`) only — no `MSBuildWorkspace`, no compilation, no semantic binding. Usage resolution is by simple type name; when a name is declared in multiple projects the analysis skips it rather than guessing (an "ambiguous" count is in `context-map.json`).
@@ -428,6 +494,8 @@ Migration linter:
 - **`plan-audit` reconciles coverage, not semantics.** Machine matches are area-level: a changed spec file and a changed code file in mapped areas reconcile each other — the audit proves every changed file on both sides is accounted for, not that a change is the right implementation of a requirement. Line anchors cite the first added line (deletion-only changes anchor the hunk start). Semantic matches are externally produced (an LLM pass is the expected producer), accepted only when both anchors are lines the diffs actually change, and always labeled `semantic` — the tool never invents a reconciliation. The audit is advisory by design: `--strict` makes error findings a non-zero exit where a team wants a gate.
 
 - **`migration-lint` reads EF Core migration files, not a compiled model.** The parser is syntax-level: EF Core file names must be `<14-digit-timestamp>_<Name>.cs`, duplicate timestamps and missing `Up` methods are loud errors, and **unknown `migrationBuilder` calls fail loudly rather than being guessed** (known set: `CreateTable`, `DropTable`, `RenameTable`, `AddColumn`, `DropColumn`, `AlterColumn`, `RenameColumn`, `CreateIndex`, `DropIndex`, `AddForeignKey`, `DropForeignKey`, `Sql` — e.g. `EnsureSchema` is a loud error until added to the known set). Only the `Up` method's statements are analyzed; the analysis proves the committed history obeys the expand-migrate-contract ordering and the ledger's measured windows — it does not observe the production database or traffic. `expandedAt`/`coldAt` are dates you attest to in the ledger; the linter checks the history against them, not their provenance.
+
+- **`dora` reads a recorded export; the joins are verified, not observed.** The extractor never calls an API live — wiring a live system means producing an export in the documented format. It checks the export's internal consistency (deployment → change → build, failure → restore evidence) against the recorded data; it does not observe production, and the failure rows are recorded from incident review, which is exactly why their taxonomy evidence is checked rather than trusted. The series carries the `dora-definitions-v1` version — trends, not scores: no benchmark labels, ever.
 
 - **`eval` judges recorded runs; it never calls a model.** The harness reads a committed `results.json` your system (or your judge pipeline) produced in the documented format, aggregates per-stage metrics over the cases that have scores (unscored cases are excluded and flagged, never guessed), and gates against thresholds and the committed baseline. Judge agreement is measured against the human-labeled sample only — abstains never count as agreement, and disagreements are named for calibration, not treated as failures. Aggregates are means rounded to 4 decimal places (AwayFromZero); the gate compares the rounded value. The harness proves the run's recorded outcomes hold and are accounted for; it does not prove the recording itself was honest.
 
@@ -447,9 +515,11 @@ The eval demo is in-repo too: [`demo/EvalApp`](demo/README.md), a docs-assistant
 
 The migration-lint demo is in-repo too: [`demo/MigrationApp`](demo/README.md), a five-migration EF Core estate that walks the expand → backfill → contract sequence by the book — `Orders.ShippingAddress` is replaced by `DeliveryAddress` with a batched, gated, measured window (expanded 2026-03-01, cold 2026-05-25, dropped 2026-06-01, isolated in its own migration) — plus five deliberately broken variants: a naive unbatched backfill (`migration/naive-backfill`), a drop-then-archive that references the dropped column (`migration/destructive-first` + `migration/drop-not-isolated`), an ungated removal of `Orders.LegacyTotal` (`migration/contract-without-gate`), an unmeasured window (no `coldAt` — `migration/removal-without-window`), and a rushed window whose drop runs before the column measured cold (`migration/removal-before-cold`). CI runs the control clean and byte-identical on regeneration, then asserts each variant bites under `--strict` with its cited evidence — the #67 done-when: the control stays silent, each seeded violation is caught by construction, deterministically.
 
+The DORA demo is in-repo too: [`demo/DoraApp`](demo/README.md), a recorded export of a **real** public repository — DevelApp-ai/RuntimePluggableClassFactory's October 2025 release train (v2.0.2 → v2.1.0, 12 releases in 10 days) — with 13 merged changes, 46 CI runs, and the one failure visible in the public history: v2.0.7 broke the GitHub Pages deploy, hotfixed by PR #18 in v2.0.8 (mode `hotfix`, MTTR 2.8 h, evidence verified inside the incident window). v2.0.9 is a direct commit with no PR — an empty `prs` list is legal because the extractor verified it empty, not because it skipped it. Five deliberately broken variants from `demo/broken/` bite under `--strict` via `--events`: a re-run mislabeled as a new deployment (`dora/re-run-mislabeled`, excluded from every count — the #68 done-when), a dangling PR join, an unbuilt release, an unknown restore mode, and unevidenced hotfix evidence. CI runs the control clean with the joins table verified and the committed definitions file byte-identical on regeneration.
+
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate), #67 (expand-migrate-contract migration linter).
+See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate), #67 (expand-migrate-contract migration linter), #68 (DORA four-key extractor).
 
 ## License
 
