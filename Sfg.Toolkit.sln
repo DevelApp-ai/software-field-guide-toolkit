@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sfg.Toolkit.EvalHarness", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sfg.Toolkit.MigrationLint", "src\Sfg.Toolkit.MigrationLint\Sfg.Toolkit.MigrationLint.csproj", "{DD6DFADE-A49B-494B-A889-7F0CBE5001A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sfg.Toolkit.DoraMetrics", "src\Sfg.Toolkit.DoraMetrics\Sfg.Toolkit.DoraMetrics.csproj", "{BBC1950E-5E63-48B6-A4FE-2B9672EDEBF9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{DD6DFADE-A49B-494B-A889-7F0CBE5001A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD6DFADE-A49B-494B-A889-7F0CBE5001A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD6DFADE-A49B-494B-A889-7F0CBE5001A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBC1950E-5E63-48B6-A4FE-2B9672EDEBF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBC1950E-5E63-48B6-A4FE-2B9672EDEBF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBC1950E-5E63-48B6-A4FE-2B9672EDEBF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBC1950E-5E63-48B6-A4FE-2B9672EDEBF9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8A6DE9E3-59F4-42B5-917D-C7133A10ED17} = {A577497B-3955-474E-83A4-65B2CB6BF366}
@@ -95,5 +101,6 @@ Global
 		{238AEA21-09F7-47E8-A27A-6473EED4F987} = {8D2CC908-41E0-4F1E-BBDE-DE4779B174B2}
 		{FA533F58-8C60-42B4-A296-C82E17BA2BCB} = {A577497B-3955-474E-83A4-65B2CB6BF366}
 		{DD6DFADE-A49B-494B-A889-7F0CBE5001A9} = {A577497B-3955-474E-83A4-65B2CB6BF366}
+		{BBC1950E-5E63-48B6-A4FE-2B9672EDEBF9} = {A577497B-3955-474E-83A4-65B2CB6BF366}
 	EndGlobalSection
 EndGlobal

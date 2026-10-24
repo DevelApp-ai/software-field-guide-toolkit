@@ -7,6 +7,7 @@ using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.EvalHarness;
 using Sfg.Toolkit.MigrationLint;
+using Sfg.Toolkit.DoraMetrics;
 using Sfg.Toolkit.SeamLedger;
 using Sfg.Toolkit.TenantProbes;
 
@@ -36,8 +37,10 @@ try
             return RunEval(args[1..]);
         case "migration-lint":
             return RunMigrationLint(args[1..]);
+        case "dora":
+            return RunDora(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.7.0");
+            Console.WriteLine("sfg 0.8.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -262,12 +265,36 @@ static int RunEvents(string[] args)
     return 0;
 }
 
+static int RunDora(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config");
+    var eventsOverride = Option(args, "--events");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "dora");
+    var strict = HasFlag(args, "--strict");
+
+    var config = DoraConfig.Load(configPath, root, eventsOverride);
+    var export = DoraAnalyzer.Load(config);
+    var report = DoraAnalyzer.Analyze(config, export);
+
+    WriteFile(outDir, "dora.md", DoraRenderer.Markdown(config, export, report));
+    WriteFile(outDir, "dora.json", DoraRenderer.Json(config, export, report));
+    WriteFile(outDir, "dora-definitions.json", DoraRenderer.DefinitionsJson());
+
+    Console.WriteLine($"dora: {report.Deployments.Count} deployment(s) ({report.ExcludedDeployments.Count} re-run(s) excluded), " +
+                      $"{report.Changes.Count} change(s), {report.Builds.Count} build(s), {report.Failures.Count} failure(s) — " +
+                      $"{report.Joins.Count} join(s) verified, {report.Series.Count} period(s) trended, " +
+                      $"{report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings) — advisory: exit 0");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "dora.md")}, {Path.Combine(outDir, "dora.json")}, {Path.Combine(outDir, "dora-definitions.json")}");
+    return strict && report.Errors > 0 ? 1 : 0;
+}
+
 static string RequiredRoot(string[] args)
 {
     string? root = null;
     for (var i = 0; i < args.Length; i++)
     {
-        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results" or "--gates")
+        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results" or "--gates" or "--events")
         {
             i++;
             continue;
@@ -380,6 +407,19 @@ static void PrintHelp()
               ordering and naive unbatched backfills. Advisory by default;
               --strict exits non-zero on error-severity findings. Emits
               migration-lint.md and migration-lint.json.
+
+          sfg dora <root> [--config <dora.json>] [--events <dora-events.json>]
+                          [--out <dir>] [--strict]
+              Extracts the DORA four keys (#68) from a recorded events export —
+              never an API live: wiring a live system means producing an export
+              in the documented format. Verifies every join the keys depend on
+              (deployment → change → build, failure → restore evidence), flags
+              re-runs mislabeled as new deployments, and trends deployment
+              frequency, lead time, change failure rate, and restore time per
+              day, ISO week, or month against the versioned definitions file —
+              trends, not scores. Advisory by default; --strict exits non-zero
+              on error-severity findings. Emits dora.md, dora.json, and
+              dora-definitions.json.
 
           sfg --version
 
