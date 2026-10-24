@@ -642,3 +642,129 @@ jobs:
           name: sfg-migration-lint-board
           path: ml-good/
           if-no-files-found: error
+
+  demo-dora:
+    name: dora extractor bites on the DoraApp recorded export
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # dora-good/, dora-rerun/ and the five variant outputs are generated and
+      # never committed; the clean control board is uploaded as the artifact.
+      - name: Control run is clean with every join verified
+        run: |
+          set -eu
+          ./.tools/sfg dora demo/DoraApp --out dora-good
+          grep -q "Clean export" dora-good/dora.md
+          grep -q "deployment → change" dora-good/dora.md
+          grep -q "failure → restore evidence" dora-good/dora.md
+          grep -q "dora-definitions-v1" dora-good/dora.md
+          grep -q "2025-10-20" dora-good/dora.md
+          grep -q "16.7%" dora-good/dora.md
+          grep -q "2.8" dora-good/dora.md
+          test "$(jq '.errors' dora-good/dora.json)" -eq 0
+          test "$(jq '.warnings' dora-good/dora.json)" -eq 0
+          test "$(jq '.series | length' dora-good/dora.json)" -eq 3
+          test "$(jq '[.joins[] | select(.verified != .total)] | length' dora-good/dora.json)" -eq 0
+
+      - name: The committed definitions file is exactly what the tool writes
+        run: |
+          set -eu
+          cmp demo/DoraApp/dora-definitions.json dora-good/dora-definitions.json
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg dora demo/DoraApp --out dora-rerun
+          cmp dora-good/dora.md dora-rerun/dora.md
+          cmp dora-good/dora.json dora-rerun/dora.json
+          cmp dora-good/dora-definitions.json dora-rerun/dora-definitions.json
+
+      - name: The gate bites on a re-run mislabeled as a new deployment
+        run: |
+          set +e
+          ./.tools/sfg dora demo/DoraApp --events demo/broken/dora-events.ReRun.json --out dora-v-rerun --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the seeded re-run passed --strict"; exit 1
+          fi
+          grep -q "dora/re-run-mislabeled" dora-v-rerun/dora.md
+          grep -qE ':[0-9]+`' dora-v-rerun/dora.md
+          test "$(jq '.errors' dora-v-rerun/dora.json)" -eq 1
+          # the re-run is excluded from the counts: week 2025-10-27 keeps 4 deployments
+          test "$(jq '.excludedDeployments | length' dora-v-rerun/dora.json)" -eq 1
+          test "$(jq '.series[] | select(.period == "2025-10-27") | .deployments' dora-v-rerun/dora.json)" -eq 4
+
+      - name: The gate bites on a dangling PR join
+        run: |
+          set +e
+          ./.tools/sfg dora demo/DoraApp --events demo/broken/dora-events.DanglingJoin.json --out dora-v-dangling --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the dangling join passed --strict"; exit 1
+          fi
+          grep -q "dora/dangling-join" dora-v-dangling/dora.md
+          grep -qE ':[0-9]+`' dora-v-dangling/dora.md
+          test "$(jq '.errors' dora-v-dangling/dora.json)" -eq 1
+
+      - name: The gate bites on an unbuilt deployment
+        run: |
+          set +e
+          ./.tools/sfg dora demo/DoraApp --events demo/broken/dora-events.Unbuilt.json --out dora-v-unbuilt --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the unbuilt release passed --strict"; exit 1
+          fi
+          grep -q "dora/unbuilt-deployment" dora-v-unbuilt/dora.md
+          grep -qE ':[0-9]+`' dora-v-unbuilt/dora.md
+          test "$(jq '.errors' dora-v-unbuilt/dora.json)" -eq 1
+
+      - name: The gate bites on an unknown failure mode
+        run: |
+          set +e
+          ./.tools/sfg dora demo/DoraApp --events demo/broken/dora-events.UnknownMode.json --out dora-v-unknown --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the unknown mode passed --strict"; exit 1
+          fi
+          grep -q "dora/unknown-failure-mode" dora-v-unknown/dora.md
+          grep -qE ':[0-9]+`' dora-v-unknown/dora.md
+          test "$(jq '.errors' dora-v-unknown/dora.json)" -eq 1
+
+      - name: The gate bites on unevidenced failure taxonomy
+        run: |
+          set +e
+          ./.tools/sfg dora demo/DoraApp --events demo/broken/dora-events.Unevidenced.json --out dora-v-unevidenced --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the unevidenced failure passed --strict"; exit 1
+          fi
+          grep -q "dora/unevidenced-failure" dora-v-unevidenced/dora.md
+          grep -qE ':[0-9]+`' dora-v-unevidenced/dora.md
+          test "$(jq '.errors' dora-v-unevidenced/dora.json)" -eq 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-dora-board
+          path: dora-good/
+          if-no-files-found: error

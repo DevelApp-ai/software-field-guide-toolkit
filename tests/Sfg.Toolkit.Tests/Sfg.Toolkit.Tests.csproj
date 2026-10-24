@@ -17,5 +17,6 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.PlanAudit\Sfg.Toolkit.PlanAudit.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.EvalHarness\Sfg.Toolkit.EvalHarness.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.MigrationLint\Sfg.Toolkit.MigrationLint.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.DoraMetrics\Sfg.Toolkit.DoraMetrics.csproj" />
   </ItemGroup>
 </Project>

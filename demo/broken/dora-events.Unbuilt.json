@@ -1,0 +1,535 @@
+{
+  "source": {
+    "repository": "DevelApp-ai/RuntimePluggableClassFactory",
+    "api": "api.github.com",
+    "window": "2025-10-26..2025-11-04",
+    "exportedAt": "2026-10-24T00:00:00Z",
+    "note": "Recorded via the unauthenticated GitHub API (releases, pulls, actions runs, tag compares). The failure row is the one incident visible in the public history: v2.0.7 broke the GitHub Pages deploy (Jekyll Liquid syntax conflicts), detected from the recorded incident review, restored by PR #18 shipped in v2.0.8."
+  },
+  "deployments": [
+    {
+      "id": "v2.0.2",
+      "environment": "release",
+      "deployedAt": "2025-10-26T16:57:26Z",
+      "targetSha": "12afdfdfda58c43c9a6ea8dfb349c6368bd2aca3",
+      "prs": [
+        10,
+        11
+      ]
+    },
+    {
+      "id": "v2.0.3",
+      "environment": "release",
+      "deployedAt": "2025-10-26T17:35:35Z",
+      "targetSha": "714f7ce646711f2faaa6c52e9016483b226efcbe",
+      "prs": [
+        9
+      ]
+    },
+    {
+      "id": "v2.0.4",
+      "environment": "release",
+      "deployedAt": "2025-10-26T17:49:46Z",
+      "targetSha": "608a8255b8fbb437fcbcca73b93d97f1f6d68733",
+      "prs": [
+        13,
+        14
+      ]
+    },
+    {
+      "id": "v2.0.5",
+      "environment": "release",
+      "deployedAt": "2025-10-26T17:53:23Z",
+      "targetSha": "d05e1a5447dbfb63a2875a04ad6e73a242ef07ae",
+      "prs": [
+        15
+      ]
+    },
+    {
+      "id": "v2.0.6",
+      "environment": "release",
+      "deployedAt": "2025-10-26T19:47:59Z",
+      "targetSha": "37fd6ba6814f14a94c4e360e3f16c7f174e1218e",
+      "prs": [
+        16
+      ]
+    },
+    {
+      "id": "v2.0.7",
+      "environment": "release",
+      "deployedAt": "2025-10-26T20:49:30Z",
+      "targetSha": "b6187fd03861dc569d0b060ce5b78ae2cfe5f88f",
+      "prs": [
+        17
+      ]
+    },
+    {
+      "id": "v2.0.8",
+      "environment": "release",
+      "deployedAt": "2025-10-27T00:20:40Z",
+      "targetSha": "6d01b672260e1e5ef8c6380977d299c7cbd82e27",
+      "prs": [
+        18
+      ]
+    },
+    {
+      "id": "v2.0.9",
+      "environment": "release",
+      "deployedAt": "2025-10-27T00:41:16Z",
+      "targetSha": "f945bd39c508f48c71265d0f8213ab06e8b8ac0e",
+      "prs": []
+    },
+    {
+      "id": "v2.0.10",
+      "environment": "release",
+      "deployedAt": "2025-10-29T11:19:33Z",
+      "targetSha": "565e13b43ac289e5560491c3497086a56c53a03f",
+      "prs": [
+        19
+      ]
+    },
+    {
+      "id": "v2.0.11",
+      "environment": "release",
+      "deployedAt": "2025-11-02T14:58:47Z",
+      "targetSha": "5ad8adf668014fef77cb5b0b2304850c1401e473",
+      "prs": [
+        20
+      ]
+    },
+    {
+      "id": "v2.0.12",
+      "environment": "release",
+      "deployedAt": "2025-11-03T02:35:17Z",
+      "targetSha": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "prs": [
+        21
+      ]
+    },
+    {
+      "id": "v2.1.0",
+      "environment": "release",
+      "deployedAt": "2025-11-04T19:18:16Z",
+      "targetSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509",
+      "prs": [
+        22
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "pr": 9,
+      "title": "Implement Containerized RuntimePluggableClassFactory (CRPCF) with Technical Design Specification",
+      "mergedAt": "2025-10-26T17:34:31Z",
+      "mergeSha": "714f7ce646711f2faaa6c52e9016483b226efcbe"
+    },
+    {
+      "pr": 10,
+      "title": "Add GitHub Actions workflow for Jekyll deployment",
+      "mergedAt": "2025-10-26T16:56:16Z",
+      "mergeSha": "203cdf4f38d6172218bba029320fc9f6a7f18fee"
+    },
+    {
+      "pr": 11,
+      "title": "Configure GitHub Pages with Leap Day theme and fix documentation inconsistencies",
+      "mergedAt": "2025-10-26T16:56:47Z",
+      "mergeSha": "12afdfdfda58c43c9a6ea8dfb349c6368bd2aca3"
+    },
+    {
+      "pr": 13,
+      "title": "Bump NuGet.Packaging from 6.7.0 to 6.7.1",
+      "mergedAt": "2025-10-26T17:48:42Z",
+      "mergeSha": "6c75ab34c3a569c437067d7834feba5937d7455d"
+    },
+    {
+      "pr": 14,
+      "title": "Bump KubernetesClient from 12.1.1 to 17.0.14",
+      "mergedAt": "2025-10-26T17:49:15Z",
+      "mergeSha": "608a8255b8fbb437fcbcca73b93d97f1f6d68733"
+    },
+    {
+      "pr": 15,
+      "title": "Potential fix for code scanning alert no. 14: Workflow does not contain permissions",
+      "mergedAt": "2025-10-26T17:52:28Z",
+      "mergeSha": "d05e1a5447dbfb63a2875a04ad6e73a242ef07ae"
+    },
+    {
+      "pr": 16,
+      "title": "Fix documentation inconsistencies and verify leap-day theme configuration",
+      "mergedAt": "2025-10-26T19:46:53Z",
+      "mergeSha": "37fd6ba6814f14a94c4e360e3f16c7f174e1218e"
+    },
+    {
+      "pr": 17,
+      "title": "Add jekyll-remote-theme plugin for GitHub Pages Leap Day theme",
+      "mergedAt": "2025-10-26T20:48:27Z",
+      "mergeSha": "b6187fd03861dc569d0b060ce5b78ae2cfe5f88f"
+    },
+    {
+      "pr": 18,
+      "title": "Fix Jekyll Liquid syntax conflicts preventing leap-day theme deployment",
+      "mergedAt": "2025-10-27T00:19:36Z",
+      "mergeSha": "6d01b672260e1e5ef8c6380977d299c7cbd82e27"
+    },
+    {
+      "pr": 19,
+      "title": "Add sitemap generation for GitHub Pages SEO",
+      "mergedAt": "2025-10-29T11:18:25Z",
+      "mergeSha": "565e13b43ac289e5560491c3497086a56c53a03f"
+    },
+    {
+      "pr": 20,
+      "title": "Fix missing IDisposable implementations and resource leaks",
+      "mergedAt": "2025-11-02T14:58:05Z",
+      "mergeSha": "5ad8adf668014fef77cb5b0b2304850c1401e473"
+    },
+    {
+      "pr": 21,
+      "title": "Expose async module-based plugin loading types for Kubernetes/remote sources (v2.1.0)",
+      "mergedAt": "2025-11-03T02:34:36Z",
+      "mergeSha": "0545f2a6ad619628198b1dbedbea21a85065b6fb"
+    },
+    {
+      "pr": 22,
+      "title": "Fix semantic versioning and test plugin loading",
+      "mergedAt": "2025-11-04T19:17:18Z",
+      "mergeSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509"
+    }
+  ],
+  "builds": [
+    {
+      "run": 1,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "203cdf4f38d6172218bba029320fc9f6a7f18fee",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T16:57:07Z"
+    },
+    {
+      "run": 27,
+      "workflow": ".NET CI/CD",
+      "headSha": "203cdf4f38d6172218bba029320fc9f6a7f18fee",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T16:57:29Z"
+    },
+    {
+      "run": 29,
+      "workflow": ".NET CI/CD",
+      "headSha": "12afdfdfda58c43c9a6ea8dfb349c6368bd2aca3",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T16:57:51Z"
+    },
+    {
+      "run": 2,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "12afdfdfda58c43c9a6ea8dfb349c6368bd2aca3",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T16:58:01Z"
+    },
+    {
+      "run": 32,
+      "workflow": "Push on master",
+      "headSha": "12afdfdfda58c43c9a6ea8dfb349c6368bd2aca3",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T16:58:20Z"
+    },
+    {
+      "run": 30,
+      "workflow": "Push on master",
+      "headSha": "203cdf4f38d6172218bba029320fc9f6a7f18fee",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T16:58:23Z"
+    },
+    {
+      "run": 3,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "714f7ce646711f2faaa6c52e9016483b226efcbe",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:35:22Z"
+    },
+    {
+      "run": 39,
+      "workflow": ".NET CI/CD",
+      "headSha": "714f7ce646711f2faaa6c52e9016483b226efcbe",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:35:39Z"
+    },
+    {
+      "run": 41,
+      "workflow": "Push on master",
+      "headSha": "714f7ce646711f2faaa6c52e9016483b226efcbe",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:36:20Z"
+    },
+    {
+      "run": 2,
+      "workflow": "nuget in /RuntimePluggableClassFactory.Containerized for NuGet.Packaging - Update #1134247780",
+      "headSha": "714f7ce646711f2faaa6c52e9016483b226efcbe",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:36:29Z"
+    },
+    {
+      "run": 1,
+      "workflow": "nuget in /RuntimePluggableClassFactory.Containerized.Kubernetes for KubernetesClient - Update #1134247781",
+      "headSha": "714f7ce646711f2faaa6c52e9016483b226efcbe",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:36:37Z"
+    },
+    {
+      "run": 4,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "6c75ab34c3a569c437067d7834feba5937d7455d",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:49:36Z"
+    },
+    {
+      "run": 42,
+      "workflow": ".NET CI/CD",
+      "headSha": "6c75ab34c3a569c437067d7834feba5937d7455d",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:49:49Z"
+    },
+    {
+      "run": 43,
+      "workflow": ".NET CI/CD",
+      "headSha": "608a8255b8fbb437fcbcca73b93d97f1f6d68733",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:50:13Z"
+    },
+    {
+      "run": 5,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "608a8255b8fbb437fcbcca73b93d97f1f6d68733",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:50:20Z"
+    },
+    {
+      "run": 3,
+      "workflow": "nuget in /RuntimePluggableClassFactory.Containerized.Kubernetes for KubernetesClient - Update #1134248301",
+      "headSha": "6c75ab34c3a569c437067d7834feba5937d7455d",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:50:35Z"
+    },
+    {
+      "run": 43,
+      "workflow": "Push on master",
+      "headSha": "608a8255b8fbb437fcbcca73b93d97f1f6d68733",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:51:16Z"
+    },
+    {
+      "run": 42,
+      "workflow": "Push on master",
+      "headSha": "6c75ab34c3a569c437067d7834feba5937d7455d",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:51:49Z"
+    },
+    {
+      "run": 6,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "d05e1a5447dbfb63a2875a04ad6e73a242ef07ae",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:53:18Z"
+    },
+    {
+      "run": 45,
+      "workflow": ".NET CI/CD",
+      "headSha": "d05e1a5447dbfb63a2875a04ad6e73a242ef07ae",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:53:26Z"
+    },
+    {
+      "run": 45,
+      "workflow": "Push on master",
+      "headSha": "d05e1a5447dbfb63a2875a04ad6e73a242ef07ae",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T17:54:25Z"
+    },
+    {
+      "run": 7,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "37fd6ba6814f14a94c4e360e3f16c7f174e1218e",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T19:47:42Z"
+    },
+    {
+      "run": 49,
+      "workflow": ".NET CI/CD",
+      "headSha": "37fd6ba6814f14a94c4e360e3f16c7f174e1218e",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T19:48:04Z"
+    },
+    {
+      "run": 48,
+      "workflow": "Push on master",
+      "headSha": "37fd6ba6814f14a94c4e360e3f16c7f174e1218e",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T19:48:59Z"
+    },
+    {
+      "run": 8,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "b6187fd03861dc569d0b060ce5b78ae2cfe5f88f",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T20:49:25Z"
+    },
+    {
+      "run": 53,
+      "workflow": ".NET CI/CD",
+      "headSha": "b6187fd03861dc569d0b060ce5b78ae2cfe5f88f",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T20:49:34Z"
+    },
+    {
+      "run": 51,
+      "workflow": "Push on master",
+      "headSha": "b6187fd03861dc569d0b060ce5b78ae2cfe5f88f",
+      "conclusion": "success",
+      "completedAt": "2025-10-26T20:50:21Z"
+    },
+    {
+      "run": 9,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "6d01b672260e1e5ef8c6380977d299c7cbd82e27",
+      "conclusion": "success",
+      "completedAt": "2025-10-27T00:20:33Z"
+    },
+    {
+      "run": 56,
+      "workflow": ".NET CI/CD",
+      "headSha": "6d01b672260e1e5ef8c6380977d299c7cbd82e27",
+      "conclusion": "success",
+      "completedAt": "2025-10-27T00:20:44Z"
+    },
+    {
+      "run": 54,
+      "workflow": "Push on master",
+      "headSha": "6d01b672260e1e5ef8c6380977d299c7cbd82e27",
+      "conclusion": "success",
+      "completedAt": "2025-10-27T00:21:37Z"
+    },
+    {
+      "run": 10,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "f945bd39c508f48c71265d0f8213ab06e8b8ac0e",
+      "conclusion": "success",
+      "completedAt": "2025-10-27T00:41:02Z"
+    },
+    {
+      "run": 57,
+      "workflow": ".NET CI/CD",
+      "headSha": "f945bd39c508f48c71265d0f8213ab06e8b8ac0e",
+      "conclusion": "success",
+      "completedAt": "2025-10-27T00:41:18Z"
+    },
+    {
+      "run": 55,
+      "workflow": "Push on master",
+      "headSha": "f945bd39c508f48c71265d0f8213ab06e8b8ac0e",
+      "conclusion": "success",
+      "completedAt": "2025-10-27T00:42:10Z"
+    },
+    {
+      "run": 11,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "565e13b43ac289e5560491c3497086a56c53a03f",
+      "conclusion": "success",
+      "completedAt": "2025-10-29T11:19:14Z"
+    },
+    {
+      "run": 60,
+      "workflow": ".NET CI/CD",
+      "headSha": "565e13b43ac289e5560491c3497086a56c53a03f",
+      "conclusion": "success",
+      "completedAt": "2025-10-29T11:19:36Z"
+    },
+    {
+      "run": 58,
+      "workflow": "Push on master",
+      "headSha": "565e13b43ac289e5560491c3497086a56c53a03f",
+      "conclusion": "success",
+      "completedAt": "2025-10-29T11:20:22Z"
+    },
+    {
+      "run": 67,
+      "workflow": ".NET CI/CD",
+      "headSha": "5ad8adf668014fef77cb5b0b2304850c1401e473",
+      "conclusion": "success",
+      "completedAt": "2025-11-02T14:58:49Z"
+    },
+    {
+      "run": 12,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "5ad8adf668014fef77cb5b0b2304850c1401e473",
+      "conclusion": "success",
+      "completedAt": "2025-11-02T14:59:00Z"
+    },
+    {
+      "run": 63,
+      "workflow": "Push on master",
+      "headSha": "5ad8adf668014fef77cb5b0b2304850c1401e473",
+      "conclusion": "success",
+      "completedAt": "2025-11-02T15:00:00Z"
+    },
+    {
+      "run": 13,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "0545f2a6ad619628198b1dbedbea21a85065b6fb",
+      "conclusion": "success",
+      "completedAt": "2025-11-03T02:35:16Z"
+    },
+    {
+      "run": 76,
+      "workflow": ".NET CI/CD",
+      "headSha": "0545f2a6ad619628198b1dbedbea21a85065b6fb",
+      "conclusion": "success",
+      "completedAt": "2025-11-03T02:35:20Z"
+    },
+    {
+      "run": 71,
+      "workflow": "Push on master",
+      "headSha": "0545f2a6ad619628198b1dbedbea21a85065b6fb",
+      "conclusion": "success",
+      "completedAt": "2025-11-03T02:36:45Z"
+    },
+    {
+      "run": 75,
+      "workflow": "Scheduled",
+      "headSha": "0545f2a6ad619628198b1dbedbea21a85065b6fb",
+      "conclusion": "success",
+      "completedAt": "2025-11-03T17:55:05Z"
+    },
+    {
+      "run": 14,
+      "workflow": "Deploy Jekyll with GitHub Pages dependencies preinstalled",
+      "headSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509",
+      "conclusion": "success",
+      "completedAt": "2025-11-04T19:18:04Z"
+    },
+    {
+      "run": 81,
+      "workflow": ".NET CI/CD",
+      "headSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509",
+      "conclusion": "success",
+      "completedAt": "2025-11-04T19:18:18Z"
+    },
+    {
+      "run": 76,
+      "workflow": "Push on master",
+      "headSha": "5a6ac5ca352cd3423820e87746e0bfa2fc1a9509",
+      "conclusion": "success",
+      "completedAt": "2025-11-04T19:19:27Z"
+    }
+  ],
+  "failures": [
+    {
+      "id": "leap-day-theme-liquid-conflict",
+      "mode": "hotfix",
+      "deployment": "v2.0.7",
+      "detectedAt": "2025-10-26T21:30:00Z",
+      "restoredAt": "2025-10-27T00:20:40Z",
+      "evidence": {
+        "hotfixPr": 18
+      }
+    }
+  ]
+}

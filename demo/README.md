@@ -64,3 +64,18 @@ bite under `--strict`: a **naive unbatched backfill** (`migration/naive-backfill
 `migration/removal-without-window`), and a **rushed window** whose drop runs before the
 column measured cold (`migration/removal-before-cold`). The control stays silent and each
 seeded violation is caught by construction — the #67 done-when.
+
+## [DoraApp](DoraApp) — `sfg dora` (#68)
+
+A recorded export of a **real** public repository — DevelApp-ai/RuntimePluggableClassFactory's
+October 2025 release train (v2.0.2 → v2.1.0, 12 releases in 10 days): 12 deployments, 13
+merged changes, 46 CI runs, and the one failure visible in the public history (v2.0.7 broke
+the GitHub Pages deploy; PR #18 shipped in v2.0.8 and restored it — mode `hotfix`, MTTR
+2.8 h, the evidence verified inside the incident window). The extractor never calls an API
+live — the export format is the contract. CI runs the control clean with every join verified
+against the recorded data, regenerates the committed definitions file byte-identically, then
+asserts five deliberately broken variants from [`broken/`](broken) bite under `--strict`
+(via `--events`): a **re-run mislabeled as a new deployment** (`dora/re-run-mislabeled`,
+excluded from every count — the #68 done-when), a **dangling PR join** (`dora/dangling-join`),
+an **unbuilt release** (`dora/unbuilt-deployment`), an **unknown restore mode**
+(`dora/unknown-failure-mode`), and **unevidenced hotfix evidence** (`dora/unevidenced-failure`).

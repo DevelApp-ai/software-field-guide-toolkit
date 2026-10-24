@@ -1,0 +1,27 @@
+{
+  "version": "dora-definitions-v1",
+  "generator": "sfg dora 0.8.0",
+  "input": "a recorded events export (deployments, changes, builds, failures) — the extractor reads the export and never calls an API live",
+  "keys": {
+    "deployment-frequency": "deployments per period; a re-run of the same environment at the same target sha is flagged and excluded",
+    "lead-time-for-changes": "median hours from change merged to the first deployment shipping it, 1 decimal",
+    "change-failure-rate": "verified failures detected in the period over deployments in the period, percent, 1 decimal",
+    "mean-time-to-restore": "median hours from failure detected to restored, 1 decimal"
+  },
+  "joins": {
+    "deployment-to-change": "a deployment lists the PRs its compare range says it ships; each must resolve to a change merged no later than the deployment (dora/dangling-join, dora/temporal-join-violation)",
+    "deployment-to-build": "each deployment's target sha must be observed by a successful CI run (dora/unbuilt-deployment)",
+    "change-to-build": "each merged change's merge sha must be observed by a CI run (dora/change-without-build)",
+    "change-to-deployment": "each merged change must be shipped by some deployment (dora/unshipped-change)",
+    "failure-to-deployment": "each failure must name an existing deployment (dora/dangling-failure-join)",
+    "failure-to-restore-evidence": "each failure's mode must be in the taxonomy and its evidence must check out (dora/unknown-failure-mode, dora/unevidenced-failure, dora/restore-before-detection)"
+  },
+  "taxonomy": {
+    "revert": "service restored by reverting the change; evidence: revertPr — a change merged inside the incident window",
+    "rollback": "service restored by rolling back to an earlier deployment of a different target sha; evidence: rollbackTo",
+    "hotfix": "service restored by shipping a fix forward; evidence: hotfixPr — a change merged inside the incident window"
+  },
+  "re-run-rule": "two deployments of the same environment at the same target sha are one deployment: the later row is a re-run mislabeled as a new deployment — flagged (dora/re-run-mislabeled) and excluded from every count",
+  "periods": "day (yyyy-MM-dd), week (ISO week, keyed by its Monday), month (yyyy-MM); a period appears in the series when it has at least one deployment",
+  "trend-policy": "trends, not scores: the series carries this definition version, never a benchmark label"
+}
