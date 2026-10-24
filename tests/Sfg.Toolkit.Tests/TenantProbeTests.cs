@@ -250,7 +250,7 @@ public sealed class TenantProbeTests
             var manifest = File(suite, "manifest.json");
             using var document = JsonDocument.Parse(manifest);
             var root = document.RootElement;
-            Assert.Equal("sfg tenant-probes 0.5.0", root.GetProperty("generator").GetString());
+            Assert.Equal("sfg tenant-probes 0.6.0", root.GetProperty("generator").GetString());
             Assert.Equal("AppDbContext", root.GetProperty("dbContext").GetString());
             Assert.Equal("net8.0", root.GetProperty("targetFramework").GetString());
             var entities = root.GetProperty("entities");

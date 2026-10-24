@@ -1,0 +1,25 @@
+{
+  "generator": "sfg eval 0.6.0",
+  "suite": "docs-assistant-eval",
+  "metrics": {
+    "faithfulness": { "value": 0.95, "cases": {
+      "g1": 1,
+      "g2": 1,
+      "g3": 0.8,
+      "g4": 1
+    } },
+    "recallAt3": { "value": 0.934, "cases": {
+      "r1": 1,
+      "r2": 1,
+      "r3": 1,
+      "r4": 1,
+      "r5": 0.67
+    } },
+    "refusalCorrectness": { "value": 1, "cases": {
+      "g1": 1,
+      "g2": 1,
+      "g3": 1,
+      "g4": 1
+    } }
+  }
+}

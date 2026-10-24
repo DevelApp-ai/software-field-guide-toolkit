@@ -2,8 +2,9 @@
 
 Small in-repo demonstration estates for the `sfg` commands. Each one exists so CI can prove
 its command **bites**: the good app passes, and a deliberately regressed variant fails with
-the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`) is
-never committed — CI regenerates it and uploads the manifest/board as the workflow artifact.
+the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`,
+`eval-*`) is never committed — CI regenerates it and uploads the manifest/board as the
+workflow artifact.
 
 ## [EventApp](EventApp) — `sfg events` (#60)
 
@@ -35,3 +36,16 @@ change no generated change implements), an **unapproved addition** (a generated 
 no spec basis), and a cross-area pair only a labeled semantic match reconciles. CI runs all
 four — the control is silent, each seeded discrepancy fires with its line-anchored
 citation, and regeneration is byte-identical — the #64 done-when.
+
+## [EvalApp](EvalApp) — `sfg eval` (#66)
+
+A docs-assistant eval suite with two stages — retrieval scored by `recallAt3`, generation
+scored by `faithfulness` and `refusalCorrectness` — nine cases (seven human-labeled), a
+committed baseline, and a conformant recorded run whose judge disagrees with the human on
+`g3`, so the agreement board shows real calibration (6/7 = 0.8571). CI runs the control
+clean, regenerates the baseline byte-identically, then judges two deliberately broken
+recorded runs from [`broken/`](broken): a **regression** (r3 drops out of the top-3 and
+g2's summary drifts — both metrics fall below baseline *and* threshold; `--strict` exits 1
+and `eval/baseline-regression` cites the moved cases) and an **undeclared case** (r99
+appears in the run; `eval/unknown-result`). The harness judges recorded runs — it never
+calls a model — the #66 done-when.

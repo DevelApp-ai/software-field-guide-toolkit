@@ -1,0 +1,16 @@
+{
+  "name": "docs-assistant-eval",
+  "judge": "rule-based-judge-v1",
+  "stages": [
+    { "id": "retrieval", "metrics": ["recallAt3"] },
+    { "id": "generation", "metrics": ["faithfulness", "refusalCorrectness"] }
+  ],
+  "thresholds": {
+    "recallAt3": 0.8,
+    "faithfulness": 0.9,
+    "refusalCorrectness": 1.0
+  },
+  "cases": "cases.json",
+  "results": "results.json",
+  "baseline": "baseline.json"
+}

@@ -2,7 +2,7 @@
 
 Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Six commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), and [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64):
+Seven commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64), and [#66](https://github.com/DevelApp-ai/software-field-guide/issues/66):
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ Six commands ship today, mapping to book issues [#54](https://github.com/DevelAp
 | `sfg cockpit` | #56 Strangler-fig migration cockpit | Reads the migration route table (`migration.json`), checks it against the routing seam (every declared route wired; no undeclared wires), runs the sunset tripwire (a strangled route whose old-implementation traffic stayed under the retirement threshold for the full sunset window — or the fig is not finished), and generates a compilable shadow-diff xunit suite comparing old and new implementations per declared tolerance. |
 | `sfg events` | #60 Event contract conformance harness | Given a message contract (`events.json`), generates a compilable xunit suite that replays chaos-lite against the real consumer: duplicate delivery (exactly-once effects), out-of-order arrival, poison payloads (routed to the dead letters, never a crash), and old-schema producer replay (version-skew tolerance), plus outbox health checks on the producer side (publish waits pending; double dispatch stays idempotent). Seeded faults visibly fail a naive consumer and pass a compliant one — the #60 done-when. |
 | `sfg plan-audit` | #64 Plan-conformance auditor | Reconciles the approved spec diff (the intent PR's `.ai`/`.test` changes) against the generated code diff (the implementation PR) through a declared spec-to-code coverage map, and reports the two discrepancy classes — **omission** (an approved spec change no generated change implements) and **unapproved addition** (a generated change with no spec basis) — line-anchored on both sides, ranked errors-first and capped. Advisory by default; `--strict` exits non-zero on errors. LLM-assisted semantic matches are accepted only with valid anchors on both sides and are always labeled. |
+| `sfg eval` | #66 LLM evaluation harness runner and baseline gate | Judges a **recorded** run (a committed `results.json`) against the suite's committed labeled set: aggregates per-stage metrics, calibrates the judge against the human-labeled sample (abstains never count as agreement), and gates against both the declared thresholds and the committed baseline — a regression cites the cases that moved, never just the aggregate. Dropped cases, undeclared cases, duplicate results, and stray metrics are loud errors. `--update-baseline` re-baselines deliberately. The harness never calls a model — wiring a live system means producing a results file in the documented format. |
 
 The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator, the shadow-diff suite, and the event conformance suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration / messaging claim is already broken.
 
@@ -47,6 +48,9 @@ sfg events /path/to/app --out events
 # plan-conformance audit: intent diff vs implementation diff, advisory
 sfg plan-audit /path/to/estate --spec-diff intent.diff --code-diff implementation.diff
 
+# LLM eval harness: judge a recorded run against the labeled set and baseline
+sfg eval /path/to/suite --out eval
+
 # all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
@@ -61,6 +65,11 @@ sfg plan-audit /path/to/estate --spec-diff intent.diff --code-diff implementatio
 #   <root>/plan-audit.json, and --semantic matches.json for externally
 #   produced (e.g. LLM-assisted) spec-to-code matches; --strict exits 1 on
 #   error-severity findings (default: advisory, exit 0)
+# eval also accepts --config eval.json (see below); it defaults to
+#   <root>/eval.json, --results results.json to judge a different recorded
+#   run, and --update-baseline to rewrite the committed baseline from this
+#   run (deliberate re-baselining); --strict exits 1 on error-severity
+#   findings (default: advisory, exit 0)
 ```
 
 ### Outputs
@@ -110,6 +119,12 @@ sfg plan-audit /path/to/estate --spec-diff intent.diff --code-diff implementatio
 
 - `plan-audit.md` — the human board: the approved spec change and the generated change side by side (each changed file with its line anchor and mapped area), the matches that reconcile them (machine matches from the coverage map; semantic matches labeled with their note), and the findings sorted errors-first with `file:line` citations on both sides.
 - `plan-audit.json` — the machine summary: spec and code files with anchors and areas, matches with provenance, findings with rule/severity/anchors, error and warning counts.
+
+`eval` writes the eval board:
+
+- `eval.md` — the human board: per-stage metric table (observed vs threshold vs baseline, with verdict), judge agreement against the human-labeled sample (abstains never count; disagreements name the cases), and findings sorted errors-first with `file:line` citations — a regression cites the cases that moved.
+- `eval.json` — the machine summary: run name, per-metric observed/threshold/baseline, agreement numbers, findings with rule/severity/message/evidence, error and warning counts.
+- `baseline.json` (via `--update-baseline`) — the committed baseline: per-metric aggregate values plus per-case scores, so a future regression can cite exactly the cases that moved. Deterministic, ordinal-sorted, no timestamps.
 
 ### Route table (`migration.json`, the cockpit's required input)
 
@@ -224,6 +239,45 @@ The optional `--semantic matches.json` file declares externally produced spec-to
 
 Every semantic match must anchor a line the spec diff actually changes to a line the code diff actually changes, cite changed files on both sides, and is rendered labeled `semantic` — never a silent guess.
 
+### Eval suite (`eval.json`, the eval harness's required input)
+
+```json
+{
+  "name": "docs-assistant-eval",
+  "judge": "rule-based-judge-v1",
+  "stages": [
+    { "id": "retrieval", "metrics": ["recallAt3"] },
+    { "id": "generation", "metrics": ["faithfulness", "refusalCorrectness"] }
+  ],
+  "thresholds": { "recallAt3": 0.8, "faithfulness": 0.9, "refusalCorrectness": 1.0 },
+  "cases": "cases.json",
+  "results": "results.json",
+  "baseline": "baseline.json"
+}
+```
+
+`stages` declares the pipeline stages and the metrics their cases are scored by — metric names are global (thresholds and baselines key on them). `thresholds` are the floor the suite declared; a threshold for an undeclared metric never passes silently. Paths resolve relative to the config's directory. `judge` is the judge configuration id, published with every report.
+
+`cases.json` is the labeled set, committed with the suite:
+
+```json
+{ "cases": [
+  { "id": "r1", "stage": "retrieval", "input": "query: ...", "expected": "docs/...", "human": "correct" }
+] }
+```
+
+Cases carrying a `human` label (`correct`/`incorrect`) form the human-labeled sample the judge is calibrated against.
+
+`results.json` is the recorded run to judge — the system under evaluation produces it (wiring a live system means producing this file in this format; the harness never calls a model):
+
+```json
+{ "run": "docs-assistant-v3", "results": [
+  { "id": "r1", "predicted": "docs/...", "judge": "correct", "scores": { "recallAt3": 1.0 } }
+] }
+```
+
+`judge` per result is the judge's verdict (`correct`/`incorrect`/`abstain`); scores are numbers in [0, 1] keyed by declared metric. `baseline.json` (written by `--update-baseline`) records per-metric aggregate values plus per-case scores, so a regression cites the cases that moved — never just the aggregate.
+
 ### Conventions the events target must satisfy
 
 - the consumer exposes `Handle(string message)` — one delivery, one call,
@@ -319,6 +373,8 @@ Plan audit:
 
 - **`plan-audit` reconciles coverage, not semantics.** Machine matches are area-level: a changed spec file and a changed code file in mapped areas reconcile each other — the audit proves every changed file on both sides is accounted for, not that a change is the right implementation of a requirement. Line anchors cite the first added line (deletion-only changes anchor the hunk start). Semantic matches are externally produced (an LLM pass is the expected producer), accepted only when both anchors are lines the diffs actually change, and always labeled `semantic` — the tool never invents a reconciliation. The audit is advisory by design: `--strict` makes error findings a non-zero exit where a team wants a gate.
 
+- **`eval` judges recorded runs; it never calls a model.** The harness reads a committed `results.json` your system (or your judge pipeline) produced in the documented format, aggregates per-stage metrics over the cases that have scores (unscored cases are excluded and flagged, never guessed), and gates against thresholds and the committed baseline. Judge agreement is measured against the human-labeled sample only — abstains never count as agreement, and disagreements are named for calibration, not treated as failures. Aggregates are means rounded to 4 decimal places (AwayFromZero); the gate compares the rounded value. The harness proves the run's recorded outcomes hold and are accounted for; it does not prove the recording itself was honest.
+
 ## Demo
 
 CI demonstrates both analysis commands against two public example codebases — [ErpLight](https://github.com/DevelApp-ai/ErpLight) (plugin-module ERP) and [RuntimePluggableClassFactory](https://github.com/DevelApp-ai/RuntimePluggableClassFactory) (runtime pluggable class factory) — and uploads the generated maps, findings, and ledgers as workflow artifacts.
@@ -331,9 +387,11 @@ The events demo is in-repo too: [`demo/EventApp`](demo/README.md), a small event
 
 The plan-audit demo is in-repo too: [`demo/PlanAudit`](demo/README.md), a small QuoteTree estate with two spec areas (quote, billing) mapped to their code areas and four committed diff pairs: a conformant control, an omission (the billing spec gains "invoices are exportable as PDF" that no generated change implements), an unapproved addition (a surprise fee appears in `InvoiceService`), and a cross-area pair (the audit-trail requirement implemented in a new file outside the map's coverage) that only a labeled semantic match reconciles. CI runs all four — the control is silent, each seeded discrepancy fires with its line-anchored citation, and regeneration is byte-identical — the #64 done-when: the auditor bites on omission and unapproved addition and stays silent on a conformant pair, deterministically.
 
+The eval demo is in-repo too: [`demo/EvalApp`](demo/README.md), a docs-assistant suite with two stages (retrieval scored by `recallAt3`, generation scored by `faithfulness` and `refusalCorrectness`), nine cases — seven human-labeled, one of which the judge disagrees on so the agreement board shows real calibration (6/7 = 0.8571, disagreements named) — a committed baseline, and two deliberately broken recorded runs: a regression (r3 drops out of the top-3, g2's summary drifts — both metrics fall below baseline *and* threshold, `--strict` exits 1 with `eval/baseline-regression` citing the moved cases) and an undeclared case (r99 appears in the run, `eval/unknown-result`). CI runs all three — the control is clean with its calibration visible, the committed baseline is byte-identical to what `--update-baseline` writes, and each seeded failure bites — the #66 done-when: the seeded suite runs in CI, the seeded regression is caught with per-case evidence, judge agreement is reported against the human-labeled sample, and everything reproduces from a clean checkout.
+
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor).
+See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate).
 
 ## License
 

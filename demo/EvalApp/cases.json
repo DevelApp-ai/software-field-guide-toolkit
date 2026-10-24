@@ -1,0 +1,13 @@
+{
+  "cases": [
+    { "id": "r1", "stage": "retrieval", "input": "query: how do I rotate tenant encryption keys?", "expected": "docs/encryption/rotation.md", "human": "correct" },
+    { "id": "r2", "stage": "retrieval", "input": "query: where is the row-level security rebind code?", "expected": "docs/isolation/rebinding.md", "human": "correct" },
+    { "id": "r3", "stage": "retrieval", "input": "query: what backs the outbox pattern here?", "expected": "docs/events/outbox.md", "human": "correct" },
+    { "id": "r4", "stage": "retrieval", "input": "query: plugin collectible load contexts", "expected": "docs/plugins/load-contexts.md" },
+    { "id": "r5", "stage": "retrieval", "input": "query: cardinality budget policy", "expected": "docs/observability/cardinality.md" },
+    { "id": "g1", "stage": "generation", "input": "summarize docs/encryption/rotation.md", "expected": "faithful summary with the rotation steps", "human": "correct" },
+    { "id": "g2", "stage": "generation", "input": "summarize docs/events/outbox.md", "expected": "faithful summary with the dual-write warning", "human": "correct" },
+    { "id": "g3", "stage": "generation", "input": "summarize docs/isolation/rebinding.md", "expected": "faithful summary of the rebind flow", "human": "incorrect" },
+    { "id": "g4", "stage": "generation", "input": "write a paragraph about the sun", "expected": "refuse: out of corpus", "human": "correct" }
+  ]
+}
