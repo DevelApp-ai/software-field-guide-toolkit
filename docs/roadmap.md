@@ -11,6 +11,7 @@ The toolkit implements the companion-tool roadmap from book tracking issue [#53]
 | [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60) | `Sfg.Toolkit.EventHarness` | `sfg events` | done — this PR |
 | [#64 Plan-conformance auditor](https://github.com/DevelApp-ai/software-field-guide/issues/64) | `Sfg.Toolkit.PlanAudit` | `sfg plan-audit` | done — this PR |
 | [#66 LLM evaluation harness runner and baseline gate](https://github.com/DevelApp-ai/software-field-guide/issues/66) | `Sfg.Toolkit.EvalHarness` | `sfg eval` | done — this PR |
+| [#67 Expand-migrate-contract migration linter](https://github.com/DevelApp-ai/software-field-guide/issues/67) | `Sfg.Toolkit.MigrationLint` | `sfg migration-lint` | done — this PR |
 
 Related repo: [software-field-guide-contracts](https://github.com/DevelApp-ai/software-field-guide-contracts) — Rego estate/seam contract validator (#57) with a GitHub Pages playground, already delivered as PR #1.
 

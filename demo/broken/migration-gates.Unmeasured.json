@@ -1,0 +1,10 @@
+{
+  "passes": [
+    {
+      "object": "Orders.ShippingAddress",
+      "gate": "forward-compat",
+      "expandedAt": "2026-03-01",
+      "consumers": [ "ShippingService", "LegacyExportJob" ]
+    }
+  ]
+}

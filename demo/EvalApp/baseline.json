@@ -1,5 +1,5 @@
 {
-  "generator": "sfg eval 0.6.0",
+  "generator": "sfg eval 0.7.0",
   "suite": "docs-assistant-eval",
   "metrics": {
     "faithfulness": { "value": 0.95, "cases": {

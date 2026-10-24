@@ -49,3 +49,18 @@ g2's summary drifts — both metrics fall below baseline *and* threshold; `--str
 and `eval/baseline-regression` cites the moved cases) and an **undeclared case** (r99
 appears in the run; `eval/unknown-result`). The harness judges recorded runs — it never
 calls a model — the #66 done-when.
+
+## [MigrationApp](MigrationApp) — `sfg migration-lint` (#67)
+
+A five-migration EF Core estate that walks the expand → backfill → contract sequence by
+the book: `Orders.ShippingAddress` is replaced by `DeliveryAddress` with a batched backfill,
+a recorded gate pass (expanded 2026-03-01, cold 2026-05-25, consumers rewired), and an
+isolated drop on 2026-06-01 — deliberately late. CI runs the control clean, regenerates the
+board byte-identically, then asserts five deliberately broken variants from [`broken/`](broken)
+bite under `--strict`: a **naive unbatched backfill** (`migration/naive-backfill`), a
+**drop-then-archive** that references the dropped column (`migration/destructive-first` +
+`migration/drop-not-isolated`), an **ungated removal** of `Orders.LegacyTotal`
+(`migration/contract-without-gate`), an **unmeasured window** (`--gates` with no `coldAt` —
+`migration/removal-without-window`), and a **rushed window** whose drop runs before the
+column measured cold (`migration/removal-before-cold`). The control stays silent and each
+seeded violation is caught by construction — the #67 done-when.

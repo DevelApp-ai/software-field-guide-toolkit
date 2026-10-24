@@ -13,6 +13,7 @@ Seven commands ship today, mapping to book issues [#54](https://github.com/Devel
 | `sfg events` | #60 Event contract conformance harness | Given a message contract (`events.json`), generates a compilable xunit suite that replays chaos-lite against the real consumer: duplicate delivery (exactly-once effects), out-of-order arrival, poison payloads (routed to the dead letters, never a crash), and old-schema producer replay (version-skew tolerance), plus outbox health checks on the producer side (publish waits pending; double dispatch stays idempotent). Seeded faults visibly fail a naive consumer and pass a compliant one — the #60 done-when. |
 | `sfg plan-audit` | #64 Plan-conformance auditor | Reconciles the approved spec diff (the intent PR's `.ai`/`.test` changes) against the generated code diff (the implementation PR) through a declared spec-to-code coverage map, and reports the two discrepancy classes — **omission** (an approved spec change no generated change implements) and **unapproved addition** (a generated change with no spec basis) — line-anchored on both sides, ranked errors-first and capped. Advisory by default; `--strict` exits non-zero on errors. LLM-assisted semantic matches are accepted only with valid anchors on both sides and are always labeled. |
 | `sfg eval` | #66 LLM evaluation harness runner and baseline gate | Judges a **recorded** run (a committed `results.json`) against the suite's committed labeled set: aggregates per-stage metrics, calibrates the judge against the human-labeled sample (abstains never count as agreement), and gates against both the declared thresholds and the committed baseline — a regression cites the cases that moved, never just the aggregate. Dropped cases, undeclared cases, duplicate results, and stray metrics are loud errors. `--update-baseline` re-baselines deliberately. The harness never calls a model — wiring a live system means producing a results file in the documented format. |
+| `sfg migration-lint` | #67 Expand-migrate-contract migration linter | Parses the committed EF Core migration history, classifies every statement expand (additive), migrate (rewiring), or contract (removing/tightening), and checks each contract step against the gates ledger: a removal needs a gate pass with a measured window (expandedAt, then coldAt) and happens deliberately late. Flags destructive-first ordering (drop-then-reference, drop-then-re-add) and naive unbatched backfills. Advisory by default; `--strict` exits non-zero on errors. |
 
 The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator, the shadow-diff suite, and the event conformance suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration / messaging claim is already broken.
 
@@ -51,6 +52,9 @@ sfg plan-audit /path/to/estate --spec-diff intent.diff --code-diff implementatio
 # LLM eval harness: judge a recorded run against the labeled set and baseline
 sfg eval /path/to/suite --out eval
 
+# migration linter: expand/migrate/contract against the gates ledger
+sfg migration-lint /path/to/app --out migration-lint
+
 # all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
@@ -70,6 +74,10 @@ sfg eval /path/to/suite --out eval
 #   run, and --update-baseline to rewrite the committed baseline from this
 #   run (deliberate re-baselining); --strict exits 1 on error-severity
 #   findings (default: advisory, exit 0)
+# migration-lint also accepts --config migration-lint.json (see below); it
+#   defaults to <root>/migration-lint.json when the file exists, and --gates
+#   to judge against a different gates ledger (e.g. a seeded broken one);
+#   --strict exits 1 on error-severity findings (default: advisory, exit 0)
 ```
 
 ### Outputs
@@ -125,6 +133,11 @@ sfg eval /path/to/suite --out eval
 - `eval.md` — the human board: per-stage metric table (observed vs threshold vs baseline, with verdict), judge agreement against the human-labeled sample (abstains never count; disagreements name the cases), and findings sorted errors-first with `file:line` citations — a regression cites the cases that moved.
 - `eval.json` — the machine summary: run name, per-metric observed/threshold/baseline, agreement numbers, findings with rule/severity/message/evidence, error and warning counts.
 - `baseline.json` (via `--update-baseline`) — the committed baseline: per-metric aggregate values plus per-case scores, so a future regression can cite exactly the cases that moved. Deterministic, ordinal-sorted, no timestamps.
+
+`migration-lint` writes the migration board:
+
+- `migration-lint.md` — the human board: the migration timeline (one row per file, classified expand/migrate/contract), the compatibility windows table (one row per gate pass: gate, expandedAt, coldAt, consumers, and the drop date), and findings sorted errors-first with `file:line` citations on both the migration and the ledger. A clean history renders the explicit `✅ Clean history` line.
+- `migration-lint.json` — the machine summary: generator, migrations, gates, findings with rule/severity/message/evidence, error and warning counts.
 
 ### Route table (`migration.json`, the cockpit's required input)
 
@@ -278,6 +291,36 @@ Cases carrying a `human` label (`correct`/`incorrect`) form the human-labeled sa
 
 `judge` per result is the judge's verdict (`correct`/`incorrect`/`abstain`); scores are numbers in [0, 1] keyed by declared metric. `baseline.json` (written by `--update-baseline`) records per-metric aggregate values plus per-case scores, so a regression cites the cases that moved — never just the aggregate.
 
+### Migration config and gates ledger (`migration-lint.json`, `migration-gates.json`, the migration linter's inputs)
+
+`migration-lint.json` is optional — both keys default as shown, `maxFindings` caps the rendered findings list in both boards (the `errors`/`warnings` counts always cover every finding):
+
+```json
+{
+  "migrationsDir": "Migrations",
+  "gates": "migration-gates.json",
+  "maxFindings": 50
+}
+```
+
+`migration-gates.json` records one pass per removed object — `object` is `Table.Column`, `gate` names the compatibility gate that was opened, `expandedAt`/`coldAt` are the measured window edges (the date the replacement went live, and the date the old column was observed serving zero reads), and `consumers` names the consumers that were confirmed rewired before the drop. The ledger is absent-or-legal until a removal fires — then its absence is itself the finding:
+
+```json
+{
+  "passes": [
+    {
+      "object": "Orders.ShippingAddress",
+      "gate": "forward-compat",
+      "expandedAt": "2026-03-01",
+      "coldAt": "2026-05-25",
+      "consumers": ["ShippingService", "LegacyExportJob"]
+    }
+  ]
+}
+```
+
+Malformed ledgers are loud errors (objects must be `Table.Column`, dates must be `yyyy-MM-dd`, passes must be unique, consumers non-empty) — never a guess. `--gates` judges the same history against a different ledger without touching the committed one.
+
 ### Conventions the events target must satisfy
 
 - the consumer exposes `Handle(string message)` — one delivery, one call,
@@ -360,6 +403,17 @@ Plan audit:
 | `plan/unmapped-spec` | warning | a changed spec file matches no map entry — the coverage map does not cover this intent |
 | `plan/unmapped-code` | warning | a changed code file matches no map entry and no allowed-unmapped prefix |
 
+Migration linter:
+
+| Rule | Severity | Fires when |
+| --- | --- | --- |
+| `migration/naive-backfill` | error | a `Sql` backfill `UPDATE` carries no `WHERE` — the batchless rewrite escalates locks, floods the WAL, and lags replication |
+| `migration/destructive-first` | error | a migration drops an object and then references it (or re-adds it), or a later migration re-adds a dropped column — expand before contract |
+| `migration/contract-without-gate` | error | a `DropColumn`/`DropTable`/tightening `AlterColumn` removes an emitted object with no gates ledger or no pass for it |
+| `migration/removal-without-window` | error | a pass leans on a missing or inverted window — no `expandedAt`/`coldAt`, or `coldAt` before `expandedAt`; a removal needs the measured window, not a date |
+| `migration/removal-before-cold` | error | the drop runs before the pass measured the old column cold — the drop is deliberately late, after the window closed |
+| `migration/drop-not-isolated` | warning | a contract migration mixes expand/migrate statements — one migration, one revert |
+
 ## Honest evaluation status
 
 - **Syntax-level analysis.** The scanner uses Roslyn (`ParseText`) only — no `MSBuildWorkspace`, no compilation, no semantic binding. Usage resolution is by simple type name; when a name is declared in multiple projects the analysis skips it rather than guessing (an "ambiguous" count is in `context-map.json`).
@@ -372,6 +426,8 @@ Plan audit:
 - **`cockpit` reasons about claims, not proof of traffic.** The pivot and handler scans are syntax-level: wiring evidence is a string-literal route id (dynamic ids are skipped, never guessed), handler resolution is by simple class/record name (missing or ambiguous declarations are loud errors). The shadow-diff suite exercises the declared `old`/`new` handlers under the convention `string <Method>(string input)` with JSON in and JSON out; it proves the two implementations agree on the declared cases within the declared tolerance — it does not observe production traffic. The `traffic` history is data you attest to in the route table; the tripwires check it for consistency, not provenance.
 
 - **`plan-audit` reconciles coverage, not semantics.** Machine matches are area-level: a changed spec file and a changed code file in mapped areas reconcile each other — the audit proves every changed file on both sides is accounted for, not that a change is the right implementation of a requirement. Line anchors cite the first added line (deletion-only changes anchor the hunk start). Semantic matches are externally produced (an LLM pass is the expected producer), accepted only when both anchors are lines the diffs actually change, and always labeled `semantic` — the tool never invents a reconciliation. The audit is advisory by design: `--strict` makes error findings a non-zero exit where a team wants a gate.
+
+- **`migration-lint` reads EF Core migration files, not a compiled model.** The parser is syntax-level: EF Core file names must be `<14-digit-timestamp>_<Name>.cs`, duplicate timestamps and missing `Up` methods are loud errors, and **unknown `migrationBuilder` calls fail loudly rather than being guessed** (known set: `CreateTable`, `DropTable`, `RenameTable`, `AddColumn`, `DropColumn`, `AlterColumn`, `RenameColumn`, `CreateIndex`, `DropIndex`, `AddForeignKey`, `DropForeignKey`, `Sql` — e.g. `EnsureSchema` is a loud error until added to the known set). Only the `Up` method's statements are analyzed; the analysis proves the committed history obeys the expand-migrate-contract ordering and the ledger's measured windows — it does not observe the production database or traffic. `expandedAt`/`coldAt` are dates you attest to in the ledger; the linter checks the history against them, not their provenance.
 
 - **`eval` judges recorded runs; it never calls a model.** The harness reads a committed `results.json` your system (or your judge pipeline) produced in the documented format, aggregates per-stage metrics over the cases that have scores (unscored cases are excluded and flagged, never guessed), and gates against thresholds and the committed baseline. Judge agreement is measured against the human-labeled sample only — abstains never count as agreement, and disagreements are named for calibration, not treated as failures. Aggregates are means rounded to 4 decimal places (AwayFromZero); the gate compares the rounded value. The harness proves the run's recorded outcomes hold and are accounted for; it does not prove the recording itself was honest.
 
@@ -389,9 +445,11 @@ The plan-audit demo is in-repo too: [`demo/PlanAudit`](demo/README.md), a small 
 
 The eval demo is in-repo too: [`demo/EvalApp`](demo/README.md), a docs-assistant suite with two stages (retrieval scored by `recallAt3`, generation scored by `faithfulness` and `refusalCorrectness`), nine cases — seven human-labeled, one of which the judge disagrees on so the agreement board shows real calibration (6/7 = 0.8571, disagreements named) — a committed baseline, and two deliberately broken recorded runs: a regression (r3 drops out of the top-3, g2's summary drifts — both metrics fall below baseline *and* threshold, `--strict` exits 1 with `eval/baseline-regression` citing the moved cases) and an undeclared case (r99 appears in the run, `eval/unknown-result`). CI runs all three — the control is clean with its calibration visible, the committed baseline is byte-identical to what `--update-baseline` writes, and each seeded failure bites — the #66 done-when: the seeded suite runs in CI, the seeded regression is caught with per-case evidence, judge agreement is reported against the human-labeled sample, and everything reproduces from a clean checkout.
 
+The migration-lint demo is in-repo too: [`demo/MigrationApp`](demo/README.md), a five-migration EF Core estate that walks the expand → backfill → contract sequence by the book — `Orders.ShippingAddress` is replaced by `DeliveryAddress` with a batched, gated, measured window (expanded 2026-03-01, cold 2026-05-25, dropped 2026-06-01, isolated in its own migration) — plus five deliberately broken variants: a naive unbatched backfill (`migration/naive-backfill`), a drop-then-archive that references the dropped column (`migration/destructive-first` + `migration/drop-not-isolated`), an ungated removal of `Orders.LegacyTotal` (`migration/contract-without-gate`), an unmeasured window (no `coldAt` — `migration/removal-without-window`), and a rushed window whose drop runs before the column measured cold (`migration/removal-before-cold`). CI runs the control clean and byte-identical on regeneration, then asserts each variant bites under `--strict` with its cited evidence — the #67 done-when: the control stays silent, each seeded violation is caught by construction, deterministically.
+
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate).
+See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate), #67 (expand-migrate-contract migration linter).
 
 ## License
 
