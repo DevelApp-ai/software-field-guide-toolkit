@@ -9,7 +9,7 @@ namespace Sfg.Toolkit.MigrationLint;
 /// </summary>
 public static class MigrationLintRenderer
 {
-    public const string Generator = "sfg migration-lint 0.10.0";
+    public const string Generator = "sfg migration-lint 0.11.0";
 
     public static string Markdown(MigrationLintConfig config, MigrationLintReport report)
     {

@@ -1,0 +1,7 @@
+{
+  "name": "pipeline-drills",
+  "judge": "drill-evidence-judge-v1",
+  "stalenessDays": 180,
+  "scenarios": "scenarios.json",
+  "evidence": "drill-evidence.json"
+}

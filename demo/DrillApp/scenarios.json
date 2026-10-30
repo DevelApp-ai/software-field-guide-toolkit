@@ -1,0 +1,8 @@
+{
+  "scenarios": [
+    { "id": "d1", "title": "pdf build restore", "failure": "the book PDF workflow fails mid-build during a release rehearsal", "expectedSignals": [ "ci/build-failed", "pager/alert-routed" ], "clocks": { "alertSeconds": 300, "rtoSeconds": 3600, "rpoSeconds": 900 } },
+    { "id": "d2", "title": "kill-switch re-entry gate", "failure": "the kill switch is engaged and the agentic pipeline halts mid-run", "expectedSignals": [ "ci/kill-switch-engaged", "ci/re-entry-gate-opened" ], "clocks": { "alertSeconds": 120, "rtoSeconds": 1800, "rpoSeconds": 600 } },
+    { "id": "d3", "title": "database failover", "failure": "the primary database becomes unreachable during business hours", "expectedSignals": [ "infra/db-unreachable", "infra/failover-started" ], "clocks": { "alertSeconds": 60, "rtoSeconds": 900, "rpoSeconds": 300 } },
+    { "id": "d4", "title": "dependency registry outage", "failure": "the package registry is unreachable and CI falls back to cache", "expectedSignals": [ "build/registry-unreachable", "build/cache-hit-used" ], "clocks": { "alertSeconds": 600, "rtoSeconds": 7200, "rpoSeconds": 3600 } }
+  ]
+}

@@ -984,3 +984,128 @@ jobs:
           name: sfg-biasprobe-board
           path: bias-good/
           if-no-files-found: error
+  demo-drills:
+    name: drills harness bites on the DrillApp recorded export
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # drills-good/, drills-rerun/, drills-late-alert/, drills-over-rto/,
+      # drills-never-drilled/, drills-rpo/, drills-signal/,
+      # drills-stale/ are generated output and never committed; the
+      # conformant control board is uploaded as the artifact.
+      - name: Control run is clean with every scenario drilled fresh
+        run: |
+          set -eu
+          ./.tools/sfg drills demo/DrillApp --out drills-good
+          grep -q "Clean run" drills-good/drills.md
+          grep -q "Summary: 4 scenario(s), 4 drill record(s), 0 finding(s)" drills-good/drills.md
+          grep -q "asOf 2026-10-15" drills-good/drills.md
+          test "$(jq '.errors' drills-good/drills.json)" -eq 0
+          test "$(jq '.warnings' drills-good/drills.json)" -eq 0
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg drills demo/DrillApp --out drills-rerun
+          cmp drills-good/drills.md drills-rerun/drills.md
+          cmp drills-good/drills.json drills-rerun/drills.json
+
+      - name: The gate bites on a late alert over the escalation clock
+        run: |
+          set +e
+          ./.tools/sfg drills demo/DrillApp --evidence demo/broken/drill-evidence.LateAlert.json --out drills-late-alert --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the late alert passed --strict"; exit 1
+          fi
+          grep -q "drill/late-alert" drills-late-alert/drills.md
+          grep -q "alerted 120s after injection — over the 60s alert clock" drills-late-alert/drills.md
+          grep -qE ':[0-9]+`' drills-late-alert/drills.md
+          test "$(jq '.errors' drills-late-alert/drills.json)" -eq 1
+
+      - name: The gate bites on a restore over the RTO
+        run: |
+          set +e
+          ./.tools/sfg drills demo/DrillApp --evidence demo/broken/drill-evidence.OverRto.json --out drills-over-rto --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the over-RTO restore passed --strict"; exit 1
+          fi
+          grep -q "drill/restore-over-rto" drills-over-rto/drills.md
+          grep -q "restored 4200s after injection — over the 3600s RTO" drills-over-rto/drills.md
+          grep -qE ':[0-9]+`' drills-over-rto/drills.md
+          test "$(jq '.errors' drills-over-rto/drills.json)" -eq 1
+
+      - name: The gate bites on a scenario that was never drilled
+        run: |
+          set +e
+          ./.tools/sfg drills demo/DrillApp --evidence demo/broken/drill-evidence.NeverDrilled.json --out drills-never-drilled --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the never-drilled scenario passed --strict"; exit 1
+          fi
+          grep -q "drill/never-drilled" drills-never-drilled/drills.md
+          grep -q "a DR plan on paper and a rehearsed one must not look alike" drills-never-drilled/drills.md
+          test "$(jq '.errors' drills-never-drilled/drills.json)" -eq 1
+
+      - name: The gate bites on a data-loss window over the RPO
+        run: |
+          set +e
+          ./.tools/sfg drills demo/DrillApp --evidence demo/broken/drill-evidence.RpoBreached.json --out drills-rpo --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the breached RPO passed --strict"; exit 1
+          fi
+          grep -q "drill/rpo-breached" drills-rpo/drills.md
+          grep -q "restored 900s after its last recoverable data — over the 600s RPO" drills-rpo/drills.md
+          grep -qE ':[0-9]+`' drills-rpo/drills.md
+          test "$(jq '.errors' drills-rpo/drills.json)" -eq 1
+
+      - name: The gate bites on a missing expected telemetry signal
+        run: |
+          set +e
+          ./.tools/sfg drills demo/DrillApp --evidence demo/broken/drill-evidence.SignalMissing.json --out drills-signal --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the missing signal passed --strict"; exit 1
+          fi
+          grep -q "drill/signal-missing" drills-signal/drills.md
+          grep -q "never recorded the 'build/registry-unreachable' signal" drills-signal/drills.md
+          grep -qE ':[0-9]+`' drills-signal/drills.md
+          test "$(jq '.errors' drills-signal/drills.json)" -eq 1
+
+      - name: A stale scenario is advisory by design
+        run: |
+          set -eu
+          ./.tools/sfg drills demo/DrillApp --evidence demo/broken/drill-evidence.StaleScenario.json --out drills-stale --strict
+          grep -q "drill/stale-scenario" drills-stale/drills.md
+          grep -q "283 days before 2026-10-15 — over the 180-day freshness window" drills-stale/drills.md
+          test "$(jq '.errors' drills-stale/drills.json)" -eq 0
+          test "$(jq '.warnings' drills-stale/drills.json)" -eq 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-drills-board
+          path: drills-good/
+          if-no-files-found: error

@@ -3,7 +3,7 @@
 Small in-repo demonstration estates for the `sfg` commands. Each one exists so CI can prove
 its command **bites**: the good app passes, and a deliberately regressed variant fails with
 the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`,
-`eval-*`, `reviewcalib-*`, `biasprobe-*`) is never committed — CI regenerates it and uploads the manifest/board as the
+`eval-*`, `reviewcalib-*`, `biasprobe-*`, `drills-*`) is never committed — CI regenerates it and uploads the manifest/board as the
 workflow artifact.
 
 ## [EventApp](EventApp) — `sfg events` (#60)
@@ -114,3 +114,22 @@ overall hides** (`bias/baseline-regression` + `bias/cohort-baseline-regression` 
 (`bias/refusal-asymmetry` — region-b refuses 2 of 5 against region-a's 0), an **answered
 must-refuse case** (`bias/refusal-missed` — fires regardless of cohort), and **citation
 skew** (`bias/citation-imbalance` ×2 — advisory by design, `--strict` still exits 0).
+
+
+## [DrillApp](DrillApp) — `sfg drills` (#81)
+
+A resilience drill estate on the book's own pipeline as the rehearsal target: four scenarios
+(`d1` PDF build restore, `d2` kill-switch re-entry, `d3` database failover, `d4` dependency
+registry outage), each with declared escalation clocks (`alertSeconds`, `rtoSeconds`,
+`rpoSeconds`), expected telemetry signals, and a per-scenario freshness window, plus a
+conformant recorded export (drill `pipeline-drill-2026-10`, `asOf` 2026-10-15 — staleness is
+measured against the recorded instant, never the wall clock). The harness judges recorded
+evidence only — it never injects failures. CI runs the control clean (all clocks met, all
+signals recorded, every scenario fresh, byte-identical on regeneration), then asserts six
+deliberately broken variants from [`broken/`](broken) bite (via `--evidence`): a **late
+alert** (`drill/late-alert` — d3 alerts 120 s over its 60 s clock, the #81 done-when), an
+**over-RTO restore** (`drill/restore-over-rto` — d1 restores 4200 s against a 3600 s RTO), a
+**breached RPO** (`drill/rpo-breached` — d2 loses 900 s against a 600 s RPO), a
+**never-drilled scenario** (`drill/never-drilled` — d4 vanishes from the export: a paper
+plan caught), a **missing expected signal** (`drill/signal-missing`), and a **stale
+scenario** (`drill/stale-scenario` — 283 days old, advisory warning, exit 0 by design).

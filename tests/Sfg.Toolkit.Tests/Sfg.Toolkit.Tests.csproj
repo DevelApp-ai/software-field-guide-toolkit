@@ -20,5 +20,6 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.DoraMetrics\Sfg.Toolkit.DoraMetrics.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.ReviewCalib\Sfg.Toolkit.ReviewCalib.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.BiasProbe\Sfg.Toolkit.BiasProbe.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.DrillHarness\Sfg.Toolkit.DrillHarness.csproj" />
   </ItemGroup>
 </Project>
