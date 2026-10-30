@@ -1,0 +1,31 @@
+{
+  "source": {
+    "repository": "example/checkout",
+    "window": "2026-09-21..2026-10-18",
+    "exportedAt": "2026-10-20T00:00:00Z",
+    "today": "2026-10-20",
+    "note": "synthetic demo estate — a review queue measured against seeded defects"
+  },
+  "reviews": [
+    { "id": "rv-001", "queue": "checkout", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-05T09:00:00Z", "decidedAt": "2026-10-05T09:04:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-002", "queue": "checkout", "reviewerRole": "junior", "reviewer": "jonas", "submittedAt": "2026-10-05T11:00:00Z", "decidedAt": "2026-10-05T11:05:00Z", "decision": "edit", "editsBeforeDecision": 2, "judgeAgrees": true, "seeded": { "seedId": "seed-01", "expectedDecision": "edit" } },
+    { "id": "rv-003", "queue": "checkout", "reviewerRole": "senior", "reviewer": "priya", "submittedAt": "2026-10-06T09:30:00Z", "decidedAt": "2026-10-06T09:36:00Z", "decision": "reject", "editsBeforeDecision": 0, "judgeAgrees": true, "seeded": { "seedId": "seed-02", "expectedDecision": "reject" } },
+    { "id": "rv-004", "queue": "checkout", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-06T14:00:00Z", "decidedAt": "2026-10-06T14:07:00Z", "decision": "approve", "editsBeforeDecision": 1, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-005", "queue": "checkout", "reviewerRole": "junior", "reviewer": "jonas", "submittedAt": "2026-10-07T10:00:00Z", "decidedAt": "2026-10-07T10:08:00Z", "decision": "escalate", "editsBeforeDecision": 0, "judgeAgrees": false, "seeded": { "seedId": "seed-03", "expectedDecision": "reject" } },
+    { "id": "rv-006", "queue": "checkout", "reviewerRole": "senior", "reviewer": "priya", "submittedAt": "2026-10-07T15:00:00Z", "decidedAt": "2026-10-07T15:09:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-007", "queue": "checkout", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-08T09:00:00Z", "decidedAt": "2026-10-08T09:10:00Z", "decision": "edit", "editsBeforeDecision": 3, "judgeAgrees": true, "seeded": { "seedId": "seed-04", "expectedDecision": "edit" } },
+    { "id": "rv-008", "queue": "checkout", "reviewerRole": "junior", "reviewer": "jonas", "submittedAt": "2026-10-08T13:20:00Z", "decidedAt": "2026-10-08T13:31:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": { "seedId": "seed-10", "expectedDecision": "edit" } },
+    { "id": "rv-009", "queue": "checkout", "reviewerRole": "senior", "reviewer": "priya", "submittedAt": "2026-10-09T09:45:00Z", "decidedAt": "2026-10-09T09:57:00Z", "decision": "approve", "editsBeforeDecision": 1, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-010", "queue": "checkout", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-10T10:00:00Z", "decidedAt": "2026-10-10T10:13:20Z", "decision": "reject", "editsBeforeDecision": 0, "judgeAgrees": true, "seeded": { "seedId": "seed-05", "expectedDecision": "reject" } },
+    { "id": "rv-011", "queue": "checkout", "reviewerRole": "junior", "reviewer": "jonas", "submittedAt": "2026-10-14T08:00:00Z", "decidedAt": "2026-10-14T08:15:00Z", "decision": "edit", "editsBeforeDecision": 2, "judgeAgrees": null, "seeded": { "seedId": "seed-06", "expectedDecision": "edit" } },
+    { "id": "rv-012", "queue": "checkout", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-11T11:00:00Z", "decidedAt": "2026-10-11T11:17:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-013", "queue": "checkout", "reviewerRole": "senior", "reviewer": "priya", "submittedAt": "2026-10-12T09:00:00Z", "decidedAt": "2026-10-12T09:20:00Z", "decision": "approve", "editsBeforeDecision": 1, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-014", "queue": "checkout", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-13T16:00:00Z", "decidedAt": "2026-10-13T16:25:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-015", "queue": "infra", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-08T10:00:00Z", "decidedAt": "2026-10-08T10:03:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-016", "queue": "infra", "reviewerRole": "senior", "reviewer": "priya", "submittedAt": "2026-10-09T14:00:00Z", "decidedAt": "2026-10-09T14:04:00Z", "decision": "edit", "editsBeforeDecision": 1, "judgeAgrees": null, "seeded": { "seedId": "seed-07", "expectedDecision": "edit" } },
+    { "id": "rv-017", "queue": "infra", "reviewerRole": "junior", "reviewer": "jonas", "submittedAt": "2026-10-09T16:30:00Z", "decidedAt": "2026-10-09T16:35:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-018", "queue": "infra", "reviewerRole": "senior", "reviewer": "maya", "submittedAt": "2026-10-12T10:00:00Z", "decidedAt": "2026-10-12T10:07:00Z", "decision": "reject", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": { "seedId": "seed-08", "expectedDecision": "reject" } },
+    { "id": "rv-019", "queue": "infra", "reviewerRole": "junior", "reviewer": "jonas", "submittedAt": "2026-10-15T09:00:00Z", "decidedAt": "2026-10-15T09:09:00Z", "decision": "approve", "editsBeforeDecision": 0, "judgeAgrees": null, "seeded": null },
+    { "id": "rv-020", "queue": "infra", "reviewerRole": "senior", "reviewer": "priya", "submittedAt": "2026-10-16T11:40:00Z", "decidedAt": "2026-10-16T11:52:00Z", "decision": "approve", "editsBeforeDecision": 1, "judgeAgrees": null, "seeded": null }
+  ]
+}
