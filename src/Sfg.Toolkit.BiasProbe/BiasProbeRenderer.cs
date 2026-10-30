@@ -10,7 +10,7 @@ namespace Sfg.Toolkit.BiasProbe;
 /// </summary>
 public static class BiasProbeRenderer
 {
-    public const string Generator = "sfg bias-probe 0.10.0";
+    public const string Generator = "sfg bias-probe 0.11.0";
 
     public static string Markdown(BiasProbeConfig config, BiasReport report)
     {
