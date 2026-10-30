@@ -1,6 +1,6 @@
 {
   "version": "dora-definitions-v1",
-  "generator": "sfg dora 0.10.0",
+  "generator": "sfg dora 0.11.0",
   "input": "a recorded events export (deployments, changes, builds, failures) — the extractor reads the export and never calls an API live",
   "keys": {
     "deployment-frequency": "deployments per period; a re-run of the same environment at the same target sha is flagged and excluded",
