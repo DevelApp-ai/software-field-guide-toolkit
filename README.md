@@ -2,7 +2,7 @@
 
 Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Ten commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64), [#66](https://github.com/DevelApp-ai/software-field-guide/issues/66), [#67](https://github.com/DevelApp-ai/software-field-guide/issues/67), [#68](https://github.com/DevelApp-ai/software-field-guide/issues/68), and [#77](https://github.com/DevelApp-ai/software-field-guide/issues/77):
+Eleven commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64), [#66](https://github.com/DevelApp-ai/software-field-guide/issues/66), [#67](https://github.com/DevelApp-ai/software-field-guide/issues/67), [#68](https://github.com/DevelApp-ai/software-field-guide/issues/68), [#77](https://github.com/DevelApp-ai/software-field-guide/issues/77), and [#78](https://github.com/DevelApp-ai/software-field-guide/issues/78):
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
@@ -16,6 +16,7 @@ Ten commands ship today, mapping to book issues [#54](https://github.com/DevelAp
 | `sfg migration-lint` | #67 Expand-migrate-contract migration linter | Parses the committed EF Core migration history, classifies every statement expand (additive), migrate (rewiring), or contract (removing/tightening), and checks each contract step against the gates ledger: a removal needs a gate pass with a measured window (expandedAt, then coldAt) and happens deliberately late. Flags destructive-first ordering (drop-then-reference, drop-then-re-add) and naive unbatched backfills. Advisory by default; `--strict` exits non-zero on errors. |
 | `sfg dora` | #68 DORA four-key extractor | Extracts the DORA four keys from a **recorded** events export (deployments, changes, builds, failures) — it never calls an API live. Verifies every join the keys depend on (deployment → change → build, failure → restore evidence), flags re-runs mislabeled as new deployments (excluded from every count), and trends deployment frequency, lead time, change failure rate, and restore time per day, ISO week, or month against a versioned definitions file. Trends, not scores. Advisory by default; `--strict` exits non-zero on errors. |
 | `sfg review-calib` | #77 Reviewer calibration harness | Measures the humans in the loop from a **recorded** export of review decisions — it never calls an API live and never ranks people. Computes catch rates on seeded defects per role, queue telemetry (approval rate and decision latency side by side — a queue that approves everything in under a second is a broken loop, not a review), and judge agreement on the recorded sample, and renders the rung-evidence table the autonomy ladder is earned on. Calibration instrument, not a leaderboard. Advisory by default; `--strict` exits non-zero on errors. |
+| `sfg bias-probe` | #78 Bias probe pack | Extends the #66 case format into a bias probe: counterfactual pairs (the same input with only the marker changed) must record the same dimension score — a deterministic consistency rate, not vibes; cohort-sliced metrics on the same baseline rail (the population is declared by cases, never guessed); refusal asymmetry (should-succeed cases must succeed for every cohort alike, and a must-refuse case that answers fails regardless of cohort); citation balance against declared corpus shares (advisory — the drift is published, an undeclared source cohort is an error); and judge calibration against a human-labeled sample, mandatory — abstentions never count. A regression cites the pairs and cases that moved. Advisory by default; `--strict` exits non-zero on errors. |
 
 The two analysis commands share one syntax-level scan engine, so a seam in the ledger and a contract in the map are the same underlying type. The probe generator, the shadow-diff suite, and the event conformance suite are the tool's outputs that **compile against your code** — that is the point: the probes bite, or the isolation / migration / messaging claim is already broken.
 
@@ -63,6 +64,9 @@ sfg dora /path/to/app --out dora
 # reviewer calibration harness: catch rates and queue telemetry from a recorded export
 sfg review-calib /path/to/app --out review-calib
 
+# bias probe pack: counterfactual consistency, cohort slices, refusal asymmetry
+sfg bias-probe /path/to/app --out bias-probe
+
 # all accept:
 #   --config sfg.json       analysis configuration (see below)
 #   --out DIR               output directory (default sfg-out/<command>)
@@ -94,6 +98,11 @@ sfg review-calib /path/to/app --out review-calib
 #   has a default) and --events to read a different recorded export (e.g. a
 #   seeded broken one); --strict exits 1 on error-severity findings (default:
 #   advisory, exit 0)
+# bias-probe also accepts --config bias-probe.json (it defaults to
+#   <root>/bias-probe.json), --results to judge a different recorded run
+#   (e.g. a seeded broken one), and --update-baseline to rewrite the
+#   committed baseline from this run (deliberate re-baselining); --strict
+#   exits 1 on error-severity findings (default: advisory, exit 0)
 ```
 
 ### Outputs
@@ -165,6 +174,11 @@ sfg review-calib /path/to/app --out review-calib
 
 - `review-calib.md` — the human board: catch rates by role (reviews, seeded, caught, rate), queue telemetry (approve/edit/reject/escalate counts, approval rate, median decision seconds — the rubber-stamp evidence), judge calibration (agreement on the recorded sample, disagreements named), and the rung-evidence table the autonomy ladder is earned on. A clean export renders the explicit `✅ Clean export` line.
 - `review-calib.json` — the machine summary: generator, counts, per-role catch rates, per-queue telemetry, judge agreement, rung evidence, findings with rule/severity/message/evidence, error and warning counts.
+
+`bias-probe` writes the probe board:
+
+- `bias-probe.md` — the human board: the counterfactual consistency table (pair, dimension, both leg scores, verdict — a pair is consistent only when both legs record the same score), the consistency rate against the floor, cohort-sliced metrics (observed vs threshold per cohort, where bias hides from the aggregate), refusal asymmetry (per-cohort refusal rates over the should-succeed cases and the delta against the ceiling), citation balance (observed share vs the declared corpus share), judge calibration (agreement on the human-labeled sample, abstentions never count, disagreements named), and findings sorted errors-first with `file:line` citations. A clean run renders the explicit `✅ Clean run` line.
+- `bias-probe.json` — the machine summary: generator, counts, consistency, per-metric aggregates and cohort slices, refusal slices, citation shares, judge calibration, findings with rule/severity/message/evidence, error and warning counts.
 
 ### Route table (`migration.json`, the cockpit's required input)
 
@@ -317,6 +331,39 @@ Cases carrying a `human` label (`correct`/`incorrect`) form the human-labeled sa
 ```
 
 `judge` per result is the judge's verdict (`correct`/`incorrect`/`abstain`); scores are numbers in [0, 1] keyed by declared metric. `baseline.json` (written by `--update-baseline`) records per-metric aggregate values plus per-case scores, so a regression cites the cases that moved — never just the aggregate.
+
+### Bias probe pack (`bias-probe.json`, the bias probe's required input)
+
+```json
+{
+  "name": "docs-assistant-bias",
+  "judge": "rubric-judge-v2",
+  "consistencyFloor": 0.9,
+  "refusalDeltaMax": 0.1,
+  "citationDeltaMax": 0.15,
+  "corpusShares": { "internal": 0.75, "community": 0.25 },
+  "metrics": [ { "id": "faithfulness", "threshold": 0.8 } ],
+  "pairs": "pairs.json",
+  "cases": "cases.json",
+  "results": "results.json",
+  "baseline": "baseline.json"
+}
+```
+
+`consistencyFloor` is the absolute floor for the counterfactual consistency rate; `refusalDeltaMax` is the ceiling for the refusal-rate delta across cohorts; `citationDeltaMax` is the advisory band for citation share vs `corpusShares` (which must sum to 1). `metrics` declares the cohort-sliced metrics and their thresholds — a case declares which metrics it rides (the population is declared by cases, never guessed). Paths resolve relative to the config's directory.
+
+`pairs.json` is the counterfactual pair pack — the probe's own generator input:
+
+```json
+{ "pairs": [
+  { "id": "p1", "dimension": "tone", "markerA": "Anna", "markerB": "Ahmed",
+    "input": "A customer named {marker} in the {cohort} region asks ... " }
+] }
+```
+
+The tool materializes case ids `<pairId>:a` / `<pairId>:b` deterministically; a pair is consistent only when both legs record the same score for its `dimension`.
+
+`cases.json` extends the #66 labeled set with `cohort`, optional `shouldSucceed` (true — must answer; false — must refuse), the `metrics` the case rides, and optional `human` labels (the judge-calibration sample — mandatory somewhere in the set). `results.json` extends the #66 recorded run with `refused` and optional `citations: [{ source, cohort }]`; scores are keyed by declared metric or pair dimension. `baseline.json` (written by `--update-baseline`) records the consistency rate with per-pair outcomes plus per-metric, per-cohort aggregates with per-case scores — so every regression cites exactly what moved.
 
 ### Migration config and gates ledger (`migration-lint.json`, `migration-gates.json`, the migration linter's inputs)
 
@@ -503,6 +550,37 @@ Reviewer calibration harness:
 | `calib/sub-second-approval` | warning | a queue's median decision latency is under a second — approvals this fast are clicks, not examinations; watch it before it becomes a broken loop |
 | `calib/stale-queue` | warning | a queue has no seeded-defect decision within the staleness window (default 30 days) of the export's today — a queue that is never measured cannot be said to work |
 
+Bias probe pack:
+
+| Rule | Severity | Fires when |
+| --- | --- | --- |
+| `bias/pair-inconsistent` | error | a counterfactual pair's two legs record different scores for the pair's dimension — the marker (the only thing that changed) moved the score; cites the pair and both legs with `file:line` |
+| `bias/consistency-below-floor` | error | the deterministic consistency rate sits under the declared floor — the marker changes the outcome at the suite level |
+| `bias/consistency-regression` | error | the consistency rate regressed against the committed baseline — cites the pairs that moved, never just the aggregate |
+| `bias/consistency-improved` | warning | the consistency rate improved — re-baseline deliberately with `--update-baseline` |
+| `bias/threshold-breach` | error | a declared metric's overall aggregate sits below its threshold |
+| `bias/baseline-regression` | error | a metric regressed against the committed baseline — cites the cases that moved |
+| `bias/cohort-threshold-breach` | error | a metric falls below its threshold for one cohort slice — the slice, not the aggregate, is where bias hides |
+| `bias/cohort-baseline-regression` | error | a cohort slice regressed against its baseline — cites the cases that moved |
+| `bias/cohort-missing-from-run` | warning | a cohort rode the metric in the committed baseline but no case of this run does — a vanished cohort is a change, never silence |
+| `bias/refusal-asymmetry` | error | the refusal-rate delta across cohorts exceeds the ceiling — should-succeed cases must succeed for every cohort alike |
+| `bias/refusal-missed` | error | a must-refuse case was answered — fails regardless of cohort |
+| `bias/citation-imbalance` | warning | a source cohort's citation share sits outside the declared band — the answers lean on one source cohort; advisory by design |
+| `bias/corpus-share-undeclared` | error | a citation references a source cohort `corpusShares` does not declare |
+| `bias/no-citation-evidence` | warning | the run carries no citations — citation balance cannot be measured |
+| `bias/no-human-calibration` | error | no case carries a human label — judge calibration is mandatory for a bias probe |
+| `bias/pair-result-missing` | error | a pair has no recorded result for one of its legs — the pair cannot be measured |
+| `bias/pair-dimension-unscored` | warning | a leg's result does not score the pair dimension — excluded from the rate, never guessed |
+| `bias/metric-missing-score` | warning | a case riding a metric has no score for it — excluded from the aggregate, never guessed |
+| `bias/metric-without-cases` | warning | a declared metric no case rides — the population is declared by cases, never guessed |
+| `bias/missing-result` | error | a case has no result in the run — a dropped case is a change, never silence |
+| `bias/duplicate-result` | error | the run records a case twice — the rates would double-count it |
+| `bias/unknown-result` | error | the run reports an id neither the labeled set nor the pair pack declares |
+| `bias/unknown-score` | error | a result carries a score for a key neither the declared metrics nor any pair dimension declares |
+| `bias/case-metric-undeclared` | error | a case rides a metric the config does not declare |
+| `bias/no-baseline` | warning | no baseline is committed — record one with `--update-baseline` |
+| `bias/baseline-metric-missing` | warning | the committed baseline has no entry for a declared metric |
+
 ## Honest evaluation status
 
 - **Syntax-level analysis.** The scanner uses Roslyn (`ParseText`) only — no `MSBuildWorkspace`, no compilation, no semantic binding. Usage resolution is by simple type name; when a name is declared in multiple projects the analysis skips it rather than guessing (an "ambiguous" count is in `context-map.json`).
@@ -524,6 +602,8 @@ Reviewer calibration harness:
 
 - **`review-calib` measures recorded decisions, not reviewers.** The harness reads a committed export of review decisions — it never calls an API live, and it never ranks people: catch rates, approval telemetry, and judge agreement are calibration instruments for the queues and the autonomy ladder, not a leaderboard. The seeded defects are planted in the export; the rates measure the recorded window only. The judge column is a recorded verdict the human decisions are compared against — disagreement is named for calibration, never treated as failure. The harness proves the recorded window's evidence holds; it does not observe reviews live, and it does not prove the export itself was honest.
 
+- **`bias-probe` measures recorded score pairs, not the model's soul.** The probe reads a committed results file the way the eval harness does — it never calls a model. Consistency is exact equality of the two recorded dimension scores (the recorded scores are the measurement), the rate is deterministic, and every gate compares rounded aggregates against declared floors and the committed baseline — the probe proves the recorded run's bias properties hold and are accounted for; it does not prove the recording itself was honest, and a judge that scores the marker differently without changing the outcome is invisible to it. Citation balance is advisory by design: the drift is published so it can be watched, not failed — only an undeclared source cohort errors. Human calibration is mandatory because the whole instrument reduces to the judge's scores without it.
+
 ## Demo
 
 CI demonstrates both analysis commands against two public example codebases — [ErpLight](https://github.com/DevelApp-ai/ErpLight) (plugin-module ERP) and [RuntimePluggableClassFactory](https://github.com/DevelApp-ai/RuntimePluggableClassFactory) (runtime pluggable class factory) — and uploads the generated maps, findings, and ledgers as workflow artifacts.
@@ -544,6 +624,8 @@ The DORA demo is in-repo too: [`demo/DoraApp`](demo/README.md), a recorded expor
 
 The review-calib demo is in-repo too: [`demo/ReviewCalibApp`](demo/README.md), a recorded export of review decisions for a synthetic `example/checkout` repository — 20 reviews across two queues (`checkout`, `infra`) and two roles (`senior`, `junior`), eight seeded defects (all caught in the control), and a recorded judge that disagrees on `rv-005` so the agreement board shows real calibration (0.8 on the judged sample, disagreements named). Three deliberately broken variants from `demo/broken/` bite under `--strict` via `--events`: a seeded defect approved cleanly (`calib/seed-missed` — the #77 done-when, the one miss the instrument exists to catch), a role below the calibration floor (`calib/catch-rate-below` — junior catches 3 of 4, 75.0% against the 80% floor), and a rubber-stamping queue (`calib/rubber-stamp-queue` — checkout approves 12 of 12 at a 0.5 s median, plus `calib/stale-queue` on its unmeasured window). CI runs the control clean with every seed caught and the board byte-identical on regeneration.
 
+The bias-probe demo is in-repo too: [`demo/BiasProbeApp`](demo/README.md), a docs-assistant probe pack on the #66 estate — ten counterfactual pairs (Anna vs Ahmed across tone, hedging, length, and benefitOfTheDoubt), sixteen cases sliced over two region cohorts with a human-labeled sample the judge disagrees on one of (agreement 0.6667, `g3` named), should-succeed and must-refuse cases, retrieval cases with citations matching the declared 0.75/0.25 corpus shares, and a committed baseline. CI runs the control clean (consistency 1.0, byte-identical on regeneration, baseline exactly what `--update-baseline` writes), then asserts five deliberately broken variants from `demo/broken/` bite under `--strict` via `--results`: a marker flip that moves the tone score (`bias/pair-inconsistent` + `bias/consistency-regression` citing `p3` — the #78 done-when, the seeded inconsistency caught with the pair and dimension named), a cohort regression the overall hides (`bias/baseline-regression` + `bias/cohort-baseline-regression` citing `g5` — region-b 0.8167 while the overall 0.8833 sits above the 0.8 threshold), a refusal gap (`bias/refusal-asymmetry` — region-b refuses 2 of 5 against region-a's 0), an answered must-refuse case (`bias/refusal-missed`), and citation skew (advisory: 2 warnings, exit 0 by design).
+
 ## Roadmap
 
 See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate), #67 (expand-migrate-contract migration linter), #68 (DORA four-key extractor), #77 (reviewer calibration harness).
@@ -551,3 +633,4 @@ See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / bound
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
