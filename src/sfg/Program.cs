@@ -8,6 +8,7 @@ using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.EvalHarness;
 using Sfg.Toolkit.MigrationLint;
 using Sfg.Toolkit.DoraMetrics;
+using Sfg.Toolkit.ReviewCalib;
 using Sfg.Toolkit.SeamLedger;
 using Sfg.Toolkit.TenantProbes;
 
@@ -39,8 +40,10 @@ try
             return RunMigrationLint(args[1..]);
         case "dora":
             return RunDora(args[1..]);
+        case "review-calib":
+            return RunReviewCalib(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.8.0");
+            Console.WriteLine("sfg 0.9.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -289,6 +292,31 @@ static int RunDora(string[] args)
     return strict && report.Errors > 0 ? 1 : 0;
 }
 
+static int RunReviewCalib(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config");
+    var eventsOverride = Option(args, "--events");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "review-calib");
+    var strict = HasFlag(args, "--strict");
+
+    var config = ReviewCalibConfig.Load(configPath, root, eventsOverride);
+    var export = ReviewCalibAnalyzer.Load(config);
+    var report = ReviewCalibAnalyzer.Analyze(config, export);
+
+    WriteFile(outDir, "review-calib.md", ReviewCalibRenderer.Markdown(config, export, report));
+    WriteFile(outDir, "review-calib.json", ReviewCalibRenderer.Json(config, export, report));
+
+    Console.WriteLine($"review-calib: {report.Reviews.Count} review(s) ({report.SeededCount} seeded, {report.CaughtCount} caught), " +
+                      $"{report.Roles.Count} role(s), {report.Queues.Count} queue(s) — " +
+                      (report.JudgeSample == 0
+                          ? "no judged row"
+                          : $"judge agreement {report.Agreement:0.####} on {report.JudgeSample} judged row(s)") +
+                      $", {report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings) — advisory: exit 0");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "review-calib.md")}, {Path.Combine(outDir, "review-calib.json")}");
+    return strict && report.Errors > 0 ? 1 : 0;
+}
+
 static string RequiredRoot(string[] args)
 {
     string? root = null;
@@ -420,6 +448,21 @@ static void PrintHelp()
               trends, not scores. Advisory by default; --strict exits non-zero
               on error-severity findings. Emits dora.md, dora.json, and
               dora-definitions.json.
+
+          sfg review-calib <root> [--config <review-calib.json>]
+                            [--events <review-events.json>] [--out <dir>] [--strict]
+              Measures the human reviewers of the queues (#77): reads a
+              recorded export of review decisions — never an API live — with
+              seeded defects planted in it, so catch rates per role and
+              queue approval telemetry replace vibes. Flags a seeded defect
+              approved cleanly, a queue that rubber-stamps (99.8%+ approval
+              at sub-second median latency — a broken loop), a role below the
+              catch-rate floor, sub-second approvals, and stale calibration
+              evidence (no seeded decision in the window). Exports the rung
+              evidence the autonomy ladder is earned on, and human-vs-judge
+              disagreement — a calibration instrument, never a leaderboard.
+              Advisory by default; --strict exits non-zero on error-severity
+              findings. Emits review-calib.md and review-calib.json.
 
           sfg --version
 

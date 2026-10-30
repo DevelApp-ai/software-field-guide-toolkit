@@ -9,7 +9,7 @@ namespace Sfg.Toolkit.EvalHarness;
 /// </summary>
 public static class EvalRenderer
 {
-    public const string Generator = "sfg eval 0.8.0";
+    public const string Generator = "sfg eval 0.9.0";
 
     public static string Markdown(EvalHarnessConfig config, EvalReport report)
     {

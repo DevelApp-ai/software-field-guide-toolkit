@@ -3,7 +3,7 @@
 Small in-repo demonstration estates for the `sfg` commands. Each one exists so CI can prove
 its command **bites**: the good app passes, and a deliberately regressed variant fails with
 the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`,
-`eval-*`) is never committed — CI regenerates it and uploads the manifest/board as the
+`eval-*`, `reviewcalib-*`) is never committed — CI regenerates it and uploads the manifest/board as the
 workflow artifact.
 
 ## [EventApp](EventApp) — `sfg events` (#60)
@@ -79,3 +79,19 @@ asserts five deliberately broken variants from [`broken/`](broken) bite under `-
 excluded from every count — the #68 done-when), a **dangling PR join** (`dora/dangling-join`),
 an **unbuilt release** (`dora/unbuilt-deployment`), an **unknown restore mode**
 (`dora/unknown-failure-mode`), and **unevidenced hotfix evidence** (`dora/unevidenced-failure`).
+
+## [ReviewCalibApp](ReviewCalibApp) — `sfg review-calib` (#77)
+
+A recorded export of review decisions for a synthetic `example/checkout` repository: 20
+reviews across two queues (`checkout`, `infra`) and two roles (`senior`, `junior`), with
+eight seeded defects planted in the export (six in `checkout`, two in `infra`) and a
+recorded judge that disagrees with the human on `rv-005` (agreement 0.8 on 5 judged rows) —
+so the control board shows real calibration: every seeded defect caught, `checkout`
+approving 57.1% at a 630 s median decision, `infra` 66.7% at 360 s. The harness reads the
+recorded export — it never calls an API live. CI runs the control clean, regenerates the
+board byte-identically, then asserts three deliberately broken variants from
+[`broken/`](broken) bite under `--strict` (via `--events`): a **seeded defect approved
+cleanly** (`calib/seed-missed`), a **role below the calibration floor** (`calib/catch-rate-below`
+— junior catches 3 of 4, 75.0% under the 80% floor), and a **rubber-stamping queue**
+(`calib/rubber-stamp-queue` — `checkout` approves 12 of 12 at a 0.5 s median, plus
+`calib/stale-queue` on the unmeasured window) — the #77 done-when.
