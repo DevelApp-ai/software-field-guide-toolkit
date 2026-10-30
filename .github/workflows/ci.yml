@@ -768,3 +768,98 @@ jobs:
           name: sfg-dora-board
           path: dora-good/
           if-no-files-found: error
+
+  demo-reviewcalib:
+    name: reviewer calibration harness bites on the ReviewCalibApp recorded export
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # reviewcalib-good/ and the variant outputs are generated and never
+      # committed; the clean control board is uploaded as the artifact.
+      - name: Control run is clean with every seeded defect caught
+        run: |
+          set -eu
+          ./.tools/sfg review-calib demo/ReviewCalibApp --out reviewcalib-good
+          grep -q "Clean export" reviewcalib-good/review-calib.md
+          grep -q "100.0%" reviewcalib-good/review-calib.md
+          grep -q "57.1%" reviewcalib-good/review-calib.md
+          grep -q "agreement 0.8" reviewcalib-good/review-calib.md
+          grep -q "rv-005" reviewcalib-good/review-calib.md
+          test "$(jq '.errors' reviewcalib-good/review-calib.json)" -eq 0
+          test "$(jq '.warnings' reviewcalib-good/review-calib.json)" -eq 0
+          test "$(jq '.counts.seeded' reviewcalib-good/review-calib.json)" -eq 8
+          test "$(jq '.counts.caught' reviewcalib-good/review-calib.json)" -eq 8
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg review-calib demo/ReviewCalibApp --out reviewcalib-rerun
+          cmp reviewcalib-good/review-calib.md reviewcalib-rerun/review-calib.md
+          cmp reviewcalib-good/review-calib.json reviewcalib-rerun/review-calib.json
+
+      - name: The gate bites on a seeded defect approved cleanly
+        run: |
+          set +e
+          ./.tools/sfg review-calib demo/ReviewCalibApp --events demo/broken/review-events.SeedMissed.json --out reviewcalib-v-seed --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the missed seed passed --strict"; exit 1
+          fi
+          grep -q "calib/seed-missed" reviewcalib-v-seed/review-calib.md
+          grep -q "seed-09" reviewcalib-v-seed/review-calib.md
+          grep -qE ':[0-9]+`' reviewcalib-v-seed/review-calib.md
+          test "$(jq '.errors' reviewcalib-v-seed/review-calib.json)" -eq 1
+
+      - name: The gate bites on a role below the calibration floor
+        run: |
+          set +e
+          ./.tools/sfg review-calib demo/ReviewCalibApp --events demo/broken/review-events.LowCatch.json --out reviewcalib-v-lowcatch --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the low catch rate passed --strict"; exit 1
+          fi
+          grep -q "calib/catch-rate-below" reviewcalib-v-lowcatch/review-calib.md
+          grep -q "3 of 4" reviewcalib-v-lowcatch/review-calib.md
+          grep -q "75.0%" reviewcalib-v-lowcatch/review-calib.md
+          grep -qE ':[0-9]+`' reviewcalib-v-lowcatch/review-calib.md
+          test "$(jq '.errors' reviewcalib-v-lowcatch/review-calib.json)" -eq 2
+
+      - name: The gate bites on a rubber-stamping queue
+        run: |
+          set +e
+          ./.tools/sfg review-calib demo/ReviewCalibApp --events demo/broken/review-events.RubberStamp.json --out reviewcalib-v-rubber --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the rubber stamp passed --strict"; exit 1
+          fi
+          grep -q "calib/rubber-stamp-queue" reviewcalib-v-rubber/review-calib.md
+          grep -q "12 of 12" reviewcalib-v-rubber/review-calib.md
+          grep -q "0.5s" reviewcalib-v-rubber/review-calib.md
+          grep -qE ':[0-9]+`' reviewcalib-v-rubber/review-calib.md
+          test "$(jq '.errors' reviewcalib-v-rubber/review-calib.json)" -eq 1
+          test "$(jq '.warnings' reviewcalib-v-rubber/review-calib.json)" -eq 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-reviewcalib-board
+          path: reviewcalib-good/
+          if-no-files-found: error
