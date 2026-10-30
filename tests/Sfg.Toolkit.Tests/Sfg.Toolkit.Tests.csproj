@@ -18,5 +18,6 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.EvalHarness\Sfg.Toolkit.EvalHarness.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.MigrationLint\Sfg.Toolkit.MigrationLint.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.DoraMetrics\Sfg.Toolkit.DoraMetrics.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.ReviewCalib\Sfg.Toolkit.ReviewCalib.csproj" />
   </ItemGroup>
 </Project>

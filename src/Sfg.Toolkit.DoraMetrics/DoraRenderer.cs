@@ -10,7 +10,7 @@ namespace Sfg.Toolkit.DoraMetrics;
 /// </summary>
 public static class DoraRenderer
 {
-    public const string Generator = "sfg dora 0.8.0";
+    public const string Generator = "sfg dora 0.9.0";
 
     public const string DefinitionVersion = "dora-definitions-v1";
 
