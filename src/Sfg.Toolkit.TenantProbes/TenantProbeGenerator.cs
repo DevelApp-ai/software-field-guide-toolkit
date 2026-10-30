@@ -418,4 +418,3 @@ public static class TenantProbeGenerator
     /// <summary>Escapes a value as a JSON string (with surrounding quotes).</summary>
     private static string Json(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
-

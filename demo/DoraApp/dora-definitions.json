@@ -25,4 +25,3 @@
   "periods": "day (yyyy-MM-dd), week (ISO week, keyed by its Monday), month (yyyy-MM); a period appears in the series when it has at least one deployment",
   "trend-policy": "trends, not scores: the series carries this definition version, never a benchmark label"
 }
-

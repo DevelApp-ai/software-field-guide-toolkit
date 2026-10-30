@@ -107,4 +107,3 @@ public static class EventHarnessRenderer
 
     private static string Json(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
-

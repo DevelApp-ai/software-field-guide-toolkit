@@ -162,4 +162,3 @@ public static class MigrationLintRenderer
         return builder.ToString();
     }
 }
-

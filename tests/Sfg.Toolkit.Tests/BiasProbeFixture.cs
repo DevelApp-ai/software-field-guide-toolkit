@@ -204,4 +204,3 @@ public sealed class BiasProbeFixture : IDisposable
     public const string AbstainingF2 =
         """{ "id": "f2", "predicted": "runbook: cancel from the order page", "judge": "abstain", "refused": false, "scores": { "faithfulness": 1.0 } }""";
 }
-

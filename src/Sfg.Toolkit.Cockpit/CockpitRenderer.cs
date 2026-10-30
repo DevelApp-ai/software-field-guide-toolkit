@@ -150,4 +150,3 @@ public static class CockpitRenderer
 
     private static string Json(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
-

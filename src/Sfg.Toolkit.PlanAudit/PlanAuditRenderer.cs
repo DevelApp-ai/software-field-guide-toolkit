@@ -152,4 +152,3 @@ public static class PlanAuditRenderer
 
     private static string J(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
-

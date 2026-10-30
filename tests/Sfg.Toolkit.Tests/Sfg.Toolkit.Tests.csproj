@@ -22,4 +22,3 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.BiasProbe\Sfg.Toolkit.BiasProbe.csproj" />
   </ItemGroup>
 </Project>
-

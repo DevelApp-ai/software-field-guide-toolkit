@@ -521,4 +521,3 @@ static void PrintHelp()
         deterministic for a given tree: no timestamps, sorted everywhere.
         """);
 }
-

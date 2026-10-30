@@ -245,4 +245,3 @@ public static class DoraRenderer
         return builder.ToString();
     }
 }
-

@@ -506,4 +506,3 @@ public sealed class CockpitTests
         }
     }
 }
-

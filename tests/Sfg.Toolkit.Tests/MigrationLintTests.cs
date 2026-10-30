@@ -446,4 +446,3 @@ public sealed class MigrationLintTests : IDisposable
         Assert.Equal("warning", report.Findings[2].Severity);
     }
 }
-

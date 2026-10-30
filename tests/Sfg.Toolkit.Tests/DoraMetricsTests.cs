@@ -462,4 +462,3 @@ public sealed class DoraMetricsTests : IDisposable
         Assert.Equal(first.Json, second.Json);
     }
 }
-

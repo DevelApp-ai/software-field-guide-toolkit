@@ -461,4 +461,3 @@ public sealed class ReviewCalibTests : IClassFixture<ReviewCalibFixture>
         return fixture.Compose(string.Join("\n", rows));
     }
 }
-

@@ -318,4 +318,3 @@ public sealed class EventHarnessTests : IDisposable
         Assert.Equal(json, EventHarnessRenderer.Json(config, scan, GenerateSuite().Suite));
     }
 }
-
