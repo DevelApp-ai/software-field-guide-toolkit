@@ -324,7 +324,7 @@ public static class TenantProbeGenerator
     {
         var builder = new StringBuilder();
         builder.AppendLine("{");
-        builder.AppendLine($@"  ""generator"": ""sfg tenant-probes 0.9.0"",");
+        builder.AppendLine($@"  ""generator"": ""sfg tenant-probes 0.10.0"",");
         builder.AppendLine($@"  ""targetProject"": {Json(Path.GetFileName(model.Context.ProjectPath))},");
         builder.AppendLine($@"  ""targetFramework"": {Json(targetFramework)},");
         builder.AppendLine($@"  ""dbContext"": {Json(model.Context.Name)},");
@@ -418,3 +418,4 @@ public static class TenantProbeGenerator
     /// <summary>Escapes a value as a JSON string (with surrounding quotes).</summary>
     private static string Json(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
+

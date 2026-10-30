@@ -4,9 +4,9 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>sfg</ToolCommandName>
     <PackageId>Sfg.Tool</PackageId>
-    <Version>0.9.0</Version>
+    <Version>0.10.0</Version>
     <Authors>DevelApp.ai</Authors>
-    <Description>Software Field Guide companion tools: code-truth context mapper (#54), seam ledger (#55), tenant-isolation probe generator (#58), strangler-fig migration cockpit (#56), event contract conformance harness (#60), plan-conformance auditor (#64), LLM evaluation harness with baseline gate (#66), and expand-migrate-contract migration linter (#67), and DORA four-key extractor (#68), and reviewer calibration harness (#77).</Description>
+    <Description>Software Field Guide companion tools: code-truth context mapper (#54), seam ledger (#55), tenant-isolation probe generator (#58), strangler-fig migration cockpit (#56), event contract conformance harness (#60), plan-conformance auditor (#64), LLM evaluation harness with baseline gate (#66), and expand-migrate-contract migration linter (#67), and DORA four-key extractor (#68), and reviewer calibration harness (#77), and bias probe pack (#78).</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/DevelApp-ai/software-field-guide-toolkit</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -23,8 +23,10 @@
     <ProjectReference Include="..\Sfg.Toolkit.MigrationLint\Sfg.Toolkit.MigrationLint.csproj" />
     <ProjectReference Include="..\Sfg.Toolkit.DoraMetrics\Sfg.Toolkit.DoraMetrics.csproj" />
     <ProjectReference Include="..\Sfg.Toolkit.ReviewCalib\Sfg.Toolkit.ReviewCalib.csproj" />
+    <ProjectReference Include="..\Sfg.Toolkit.BiasProbe\Sfg.Toolkit.BiasProbe.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
+

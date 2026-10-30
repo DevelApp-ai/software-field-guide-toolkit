@@ -11,7 +11,7 @@ namespace Sfg.Toolkit.Cockpit;
 /// </summary>
 public static class CockpitRenderer
 {
-    public const string Generator = "sfg cockpit 0.9.0";
+    public const string Generator = "sfg cockpit 0.10.0";
 
     public static string Markdown(CockpitReport report, MigrationConfig config)
     {
@@ -150,3 +150,4 @@ public static class CockpitRenderer
 
     private static string Json(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
+

@@ -9,7 +9,7 @@ namespace Sfg.Toolkit.PlanAudit;
 /// </summary>
 public static class PlanAuditRenderer
 {
-    public const string Generator = "sfg plan-audit 0.9.0";
+    public const string Generator = "sfg plan-audit 0.10.0";
 
     public static string Markdown(PlanAuditConfig config, PlanAuditReport report)
     {
@@ -152,3 +152,4 @@ public static class PlanAuditRenderer
 
     private static string J(string value) => "\"" + System.Text.Json.JsonEncodedText.Encode(value) + "\"";
 }
+

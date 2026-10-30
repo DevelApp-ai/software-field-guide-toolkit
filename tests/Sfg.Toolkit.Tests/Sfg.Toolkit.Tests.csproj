@@ -19,5 +19,7 @@
     <ProjectReference Include="..\..\src\Sfg.Toolkit.MigrationLint\Sfg.Toolkit.MigrationLint.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.DoraMetrics\Sfg.Toolkit.DoraMetrics.csproj" />
     <ProjectReference Include="..\..\src\Sfg.Toolkit.ReviewCalib\Sfg.Toolkit.ReviewCalib.csproj" />
+    <ProjectReference Include="..\..\src\Sfg.Toolkit.BiasProbe\Sfg.Toolkit.BiasProbe.csproj" />
   </ItemGroup>
 </Project>
+

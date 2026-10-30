@@ -11,7 +11,7 @@ namespace Sfg.Toolkit.ReviewCalib;
 /// </summary>
 public static class ReviewCalibRenderer
 {
-    public const string Generator = "sfg review-calib 0.9.0";
+    public const string Generator = "sfg review-calib 0.10.0";
 
     public static string Markdown(ReviewCalibConfig config, ReviewCalibEventsExport export, ReviewCalibReport report)
     {
@@ -232,3 +232,4 @@ public static class ReviewCalibRenderer
         return builder.ToString();
     }
 }
+

@@ -6,6 +6,7 @@ using Sfg.Toolkit.Core.Analysis;
 using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.EvalHarness;
+using Sfg.Toolkit.BiasProbe;
 using Sfg.Toolkit.MigrationLint;
 using Sfg.Toolkit.DoraMetrics;
 using Sfg.Toolkit.ReviewCalib;
@@ -42,8 +43,10 @@ try
             return RunDora(args[1..]);
         case "review-calib":
             return RunReviewCalib(args[1..]);
+        case "bias-probe":
+            return RunBiasProbe(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.9.0");
+            Console.WriteLine("sfg 0.10.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -317,6 +320,36 @@ static int RunReviewCalib(string[] args)
     return strict && report.Errors > 0 ? 1 : 0;
 }
 
+static int RunBiasProbe(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config") ?? Path.Combine(root, "bias-probe.json");
+    var resultsPath = Option(args, "--results");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "bias-probe");
+    var strict = HasFlag(args, "--strict");
+    var updateBaseline = HasFlag(args, "--update-baseline");
+
+    var config = BiasProbeConfig.Load(configPath);
+    var report = BiasProbeAnalyzer.Analyze(config, resultsPath);
+
+    WriteFile(outDir, "bias-probe.md", BiasProbeRenderer.Markdown(config, report));
+    WriteFile(outDir, "bias-probe.json", BiasProbeRenderer.Json(config, report));
+
+    if (updateBaseline)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(config.BaselinePath)) ?? ".");
+        File.WriteAllText(config.BaselinePath, BiasProbeRenderer.BaselineJson(config, report), new UTF8Encoding(false));
+    }
+
+    Console.WriteLine($"bias-probe: suite {config.Name}, run {report.RunName}, " +
+                      $"{report.PairConsistency.Count} measured pair(s) (consistency {report.Consistency:0.####}), " +
+                      $"{report.Cases.Count} case(s), {report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings), " +
+                      $"judge agreement {report.Agreement:0.####} on {report.LabeledSampleSize} labeled case(s)");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "bias-probe.md")}, {Path.Combine(outDir, "bias-probe.json")}" +
+                      (updateBaseline ? $", baseline → {config.BaselinePath}" : string.Empty));
+    return strict && report.Errors > 0 ? 1 : 0;
+}
+
 static string RequiredRoot(string[] args)
 {
     string? root = null;
@@ -464,9 +497,28 @@ static void PrintHelp()
               Advisory by default; --strict exits non-zero on error-severity
               findings. Emits review-calib.md and review-calib.json.
 
+          sfg bias-probe <root> [--config <bias-probe.json>]
+                            [--results <results.json>] [--out <dir>]
+                            [--strict] [--update-baseline]
+              Runs the bias probe pack (#78) on a recorded eval run —
+              never a model live: it judges recorded outcomes. Measures
+              counterfactual consistency over the committed pair pack (the
+              same input with only the marker swapped must score the same),
+              cohort-slices the eval metrics so a cohort cannot hide inside
+              the aggregate, checks refusal symmetry (should-succeed cases
+              succeed for every cohort alike; must-refuse cases refuse
+              regardless of cohort), measures citation balance against the
+              declared corpus shares, and calibrates the judge against the
+              human-labeled sample — abstentions never count.
+              --update-baseline rewrites the baseline file from this run
+              (commit it deliberately); --strict exits non-zero on
+              error-severity findings. Emits bias-probe.md and
+              bias-probe.json.
+
           sfg --version
 
         The scanner parses source only — no build, no restore. All output is
         deterministic for a given tree: no timestamps, sorted everywhere.
         """);
 }
+
