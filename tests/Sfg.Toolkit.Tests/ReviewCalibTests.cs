@@ -97,7 +97,7 @@ public sealed class ReviewCalibTests : IClassFixture<ReviewCalibFixture>
     {
         var markdown = BoardMarkdown();
         Assert.Contains("✅ Clean export: every seeded defect was caught, no queue rubber-stamps its approvals, and every role sits at or above the calibration floor.", markdown);
-        Assert.Contains("sfg review-calib 0.9.0", markdown);
+        Assert.Contains("sfg review-calib 0.10.0", markdown);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class ReviewCalibTests : IClassFixture<ReviewCalibFixture>
     {
         using var document = JsonDocument.Parse(BoardJson());
         var root = document.RootElement;
-        Assert.Equal("sfg review-calib 0.9.0", root.GetProperty("generator").GetString());
+        Assert.Equal("sfg review-calib 0.10.0", root.GetProperty("generator").GetString());
         Assert.Equal(20, root.GetProperty("counts").GetProperty("reviews").GetInt32());
         Assert.Equal(8, root.GetProperty("counts").GetProperty("seeded").GetInt32());
         Assert.Equal(8, root.GetProperty("counts").GetProperty("caught").GetInt32());

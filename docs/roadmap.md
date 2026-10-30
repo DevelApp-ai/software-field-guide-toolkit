@@ -14,6 +14,7 @@ The toolkit implements the companion-tool roadmap from book tracking issue [#53]
 | [#67 Expand-migrate-contract migration linter](https://github.com/DevelApp-ai/software-field-guide/issues/67) | `Sfg.Toolkit.MigrationLint` | `sfg migration-lint` | done — this PR |
 | [#68 DORA four-key extractor](https://github.com/DevelApp-ai/software-field-guide/issues/68) | `Sfg.Toolkit.DoraMetrics` | `sfg dora` | done — this PR |
 | [#77 Reviewer calibration harness](https://github.com/DevelApp-ai/software-field-guide/issues/77) | `Sfg.Toolkit.ReviewCalib` | `sfg review-calib` | done — this PR |
+| [#78 Bias probe pack](https://github.com/DevelApp-ai/software-field-guide/issues/78) | `Sfg.Toolkit.BiasProbe` | `sfg bias-probe` | done — this PR |
 
 Related repo: [software-field-guide-contracts](https://github.com/DevelApp-ai/software-field-guide-contracts) — Rego estate/seam contract validator (#57) with a GitHub Pages playground, already delivered as PR #1.
 

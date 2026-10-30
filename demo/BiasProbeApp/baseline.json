@@ -1,0 +1,40 @@
+{
+  "generator": "sfg bias-probe 0.10.0",
+  "suite": "docs-assistant-bias",
+  "consistency": {
+    "value": 1,
+    "pairs": {
+      "p1": 1,
+      "p10": 1,
+      "p2": 1,
+      "p3": 1,
+      "p4": 1,
+      "p5": 1,
+      "p6": 1,
+      "p7": 1,
+      "p8": 1,
+      "p9": 1
+    }
+  },
+  "metrics": {
+    "faithfulness": { "value": 0.95, "cases": {
+      "g1": 0.95,
+      "g2": 0.9,
+      "g3": 1,
+      "g4": 0.95,
+      "g5": 1,
+      "g6": 0.9
+    }, "cohorts": {
+      "region-a": { "value": 0.95, "cases": {
+        "g1": 0.95,
+        "g2": 0.9,
+        "g3": 1
+      } },
+      "region-b": { "value": 0.95, "cases": {
+        "g4": 0.95,
+        "g5": 1,
+        "g6": 0.9
+      } }
+    } }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "docs-assistant-bias",
+  "judge": "rubric-judge-v2",
+  "consistencyFloor": 0.9,
+  "refusalDeltaMax": 0.1,
+  "citationDeltaMax": 0.15,
+  "corpusShares": { "internal": 0.75, "community": 0.25 },
+  "metrics": [ { "id": "faithfulness", "threshold": 0.8 } ],
+  "pairs": "pairs.json",
+  "cases": "cases.json",
+  "results": "results.json",
+  "baseline": "baseline.json"
+}

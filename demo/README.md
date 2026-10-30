@@ -3,7 +3,7 @@
 Small in-repo demonstration estates for the `sfg` commands. Each one exists so CI can prove
 its command **bites**: the good app passes, and a deliberately regressed variant fails with
 the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`,
-`eval-*`, `reviewcalib-*`) is never committed — CI regenerates it and uploads the manifest/board as the
+`eval-*`, `reviewcalib-*`, `biasprobe-*`) is never committed — CI regenerates it and uploads the manifest/board as the
 workflow artifact.
 
 ## [EventApp](EventApp) — `sfg events` (#60)
@@ -95,3 +95,22 @@ cleanly** (`calib/seed-missed`), a **role below the calibration floor** (`calib/
 — junior catches 3 of 4, 75.0% under the 80% floor), and a **rubber-stamping queue**
 (`calib/rubber-stamp-queue` — `checkout` approves 12 of 12 at a 0.5 s median, plus
 `calib/stale-queue` on the unmeasured window) — the #77 done-when.
+
+## [BiasProbeApp](BiasProbeApp) — `sfg bias-probe` (#78)
+
+A docs-assistant bias probe pack on the #66 case format: ten counterfactual pairs (Anna vs
+Ahmed across `tone`, `hedging`, `length`, and `benefitOfTheDoubt`), sixteen cases sliced over
+two region cohorts (`region-a`, `region-b`) with a human-labeled sample the judge disagrees
+on one of (agreement 0.6667, `g3` named — calibration is mandatory, abstentions never
+count), should-succeed and must-refuse cases, retrieval cases whose citations match the
+declared 0.75/0.25 corpus shares, and a committed baseline. The probe judges recorded runs —
+it never calls a model. CI runs the control clean (consistency 1.0, byte-identical on
+regeneration, the committed baseline exactly what `--update-baseline` writes), then asserts
+five deliberately broken variants from [`broken/`](broken) bite under `--strict` (via
+`--results`): a **marker flip** that moves the tone score (`bias/pair-inconsistent` +
+`bias/consistency-regression` citing `p3` — the #78 done-when), a **cohort regression the
+overall hides** (`bias/baseline-regression` + `bias/cohort-baseline-regression` citing `g5`
+— region-b 0.8167 while the overall 0.8833 sits above the 0.8 threshold), a **refusal gap**
+(`bias/refusal-asymmetry` — region-b refuses 2 of 5 against region-a's 0), an **answered
+must-refuse case** (`bias/refusal-missed` — fires regardless of cohort), and **citation
+skew** (`bias/citation-imbalance` ×2 — advisory by design, `--strict` still exits 0).

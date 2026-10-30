@@ -863,3 +863,124 @@ jobs:
           name: sfg-reviewcalib-board
           path: reviewcalib-good/
           if-no-files-found: error
+
+  demo-biasprobe:
+    name: bias probe bites on the BiasProbeApp counterfactual estate
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # bias-good/, bias-rerun/, bias-baseline-regen/, bias-inconsistent/,
+      # bias-cohort/, bias-refusal-gap/, bias-refusal-missed/,
+      # bias-citation-skew/ are generated output and never committed; the
+      # conformant control board is uploaded as the artifact.
+      - name: Control run is clean with every counterfactual pair consistent
+        run: |
+          set -eu
+          ./.tools/sfg bias-probe demo/BiasProbeApp --out bias-good
+          grep -q "Clean run" bias-good/bias-probe.md
+          grep -q "Rate 1 across 10 measured pair(s)" bias-good/bias-probe.md
+          grep -q "agreement 0.6667" bias-good/bias-probe.md
+          grep -q "Disagreements: .g3." bias-good/bias-probe.md
+          test "$(jq '.errors' bias-good/bias-probe.json)" -eq 0
+          test "$(jq '.warnings' bias-good/bias-probe.json)" -eq 0
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg bias-probe demo/BiasProbeApp --out bias-rerun
+          cmp bias-good/bias-probe.md bias-rerun/bias-probe.md
+          cmp bias-good/bias-probe.json bias-rerun/bias-probe.json
+
+      - name: The committed baseline is exactly what the tool writes
+        run: |
+          set -eu
+          cp demo/BiasProbeApp/baseline.json /tmp/bias-baseline.orig
+          ./.tools/sfg bias-probe demo/BiasProbeApp --out bias-baseline-regen --update-baseline
+          cmp /tmp/bias-baseline.orig demo/BiasProbeApp/baseline.json
+
+      - name: The gate bites on a marker flip that moves the score
+        run: |
+          set +e
+          ./.tools/sfg bias-probe demo/BiasProbeApp --results demo/broken/bias-results.Inconsistent.json --out bias-inconsistent --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the marker flip passed --strict"; exit 1
+          fi
+          grep -q "bias/pair-inconsistent" bias-inconsistent/bias-probe.md
+          grep -q "moved pairs: 'p3'" bias-inconsistent/bias-probe.md
+          grep -q "bias/consistency-regression" bias-inconsistent/bias-probe.md
+          grep -qE ':[0-9]+`' bias-inconsistent/bias-probe.md
+          test "$(jq '.errors' bias-inconsistent/bias-probe.json)" -eq 2
+
+      - name: The gate bites on a cohort regression hidden from the threshold
+        run: |
+          set +e
+          ./.tools/sfg bias-probe demo/BiasProbeApp --results demo/broken/bias-results.CohortRegressed.json --out bias-cohort --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the cohort regression passed --strict"; exit 1
+          fi
+          grep -q "bias/baseline-regression" bias-cohort/bias-probe.md
+          grep -q "moved cases: 'g5'" bias-cohort/bias-probe.md
+          grep -q "bias/cohort-baseline-regression" bias-cohort/bias-probe.md
+          grep -qE ':[0-9]+`' bias-cohort/bias-probe.md
+          test "$(jq '.errors' bias-cohort/bias-probe.json)" -eq 2
+
+      - name: The gate bites on a refusal gap across cohorts
+        run: |
+          set +e
+          ./.tools/sfg bias-probe demo/BiasProbeApp --results demo/broken/bias-results.RefusalGap.json --out bias-refusal-gap --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the refusal gap passed --strict"; exit 1
+          fi
+          grep -q "bias/refusal-asymmetry" bias-refusal-gap/bias-probe.md
+          grep -q "refused 2 of 5" bias-refusal-gap/bias-probe.md
+          grep -qE ':[0-9]+`' bias-refusal-gap/bias-probe.md
+          test "$(jq '.errors' bias-refusal-gap/bias-probe.json)" -eq 1
+
+      - name: The gate bites on an answered must-refuse case
+        run: |
+          set +e
+          ./.tools/sfg bias-probe demo/BiasProbeApp --results demo/broken/bias-results.RefusalMissed.json --out bias-refusal-missed --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the answered must-refuse case passed --strict"; exit 1
+          fi
+          grep -q "bias/refusal-missed" bias-refusal-missed/bias-probe.md
+          grep -q "regardless of cohort" bias-refusal-missed/bias-probe.md
+          test "$(jq '.errors' bias-refusal-missed/bias-probe.json)" -eq 1
+
+      - name: Citation skew is advisory by design
+        run: |
+          set -eu
+          ./.tools/sfg bias-probe demo/BiasProbeApp --results demo/broken/bias-results.CitationSkew.json --out bias-citation-skew --strict
+          grep -q "bias/citation-imbalance" bias-citation-skew/bias-probe.md
+          test "$(jq '.errors' bias-citation-skew/bias-probe.json)" -eq 0
+          test "$(jq '.warnings' bias-citation-skew/bias-probe.json)" -eq 2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-biasprobe-board
+          path: bias-good/
+          if-no-files-found: error

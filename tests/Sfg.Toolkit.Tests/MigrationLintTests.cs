@@ -365,7 +365,7 @@ public sealed class MigrationLintTests : IDisposable
     public void Markdown_renders_the_timeline_windows_and_citations()
     {
         var markdown = MigrationLintRenderer.Markdown(_app.Config(), _app.Lint());
-        Assert.Contains("sfg migration-lint 0.9.0", markdown);
+        Assert.Contains("sfg migration-lint 0.10.0", markdown);
         Assert.Contains("`20260601100000_RemoveShippingAddress.cs`", markdown);
         Assert.Contains("`Orders.ShippingAddress`", markdown);
         Assert.Contains("2026-05-25", markdown);
@@ -391,7 +391,7 @@ public sealed class MigrationLintTests : IDisposable
         var json = MigrationLintRenderer.Json(_app.Config(), _app.Lint());
         using var document = System.Text.Json.JsonDocument.Parse(json);
         var root = document.RootElement;
-        Assert.Equal("sfg migration-lint 0.9.0", root.GetProperty("generator").GetString());
+        Assert.Equal("sfg migration-lint 0.10.0", root.GetProperty("generator").GetString());
         Assert.Equal(4, root.GetProperty("migrations").GetArrayLength());
         Assert.Equal(0, root.GetProperty("errors").GetInt32());
         Assert.Equal("2026-05-25", root.GetProperty("gates")[0].GetProperty("coldAt").GetString());
