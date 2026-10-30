@@ -19,4 +19,3 @@ The toolkit implements the companion-tool roadmap from book tracking issue [#53]
 Related repo: [software-field-guide-contracts](https://github.com/DevelApp-ai/software-field-guide-contracts) — Rego estate/seam contract validator (#57) with a GitHub Pages playground, already delivered as PR #1.
 
 The context mapper draws diagrams in the book's drawio conventions (see the book repo's diagram appendix): `agent="vibe"` on the mxfile, HTML `<br>` labels, house palette of host blue / plugin orange / shared-kernel yellow, green edges for clean dependencies and red dashed edges for forbidden directions.
-

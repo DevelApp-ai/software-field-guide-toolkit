@@ -114,4 +114,3 @@ overall hides** (`bias/baseline-regression` + `bias/cohort-baseline-regression` 
 (`bias/refusal-asymmetry` — region-b refuses 2 of 5 against region-a's 0), an **answered
 must-refuse case** (`bias/refusal-missed` — fires regardless of cohort), and **citation
 skew** (`bias/citation-imbalance` ×2 — advisory by design, `--strict` still exits 0).
-
