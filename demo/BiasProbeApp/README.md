@@ -39,4 +39,3 @@ regeneration. The broken variants live in [`../broken`](../broken) and CI judges
 Every bite cites `file:line` evidence — the pair, case, or citation that moved, against
 the baseline entry it violated. The control stays silent; each seeded violation is caught
 by construction — the #78 done-when.
-

@@ -639,4 +639,3 @@ public static class BiasFiles
         throw new InvalidOperationException($"every {what} needs a non-empty \"{name}\"");
     }
 }
-

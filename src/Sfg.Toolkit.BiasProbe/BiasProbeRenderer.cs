@@ -330,4 +330,3 @@ public static class BiasProbeRenderer
         return builder.ToString();
     }
 }
-

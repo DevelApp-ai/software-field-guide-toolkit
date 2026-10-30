@@ -39,4 +39,3 @@
     { "id": "r4", "predicted": "docs/billing/exports.md + docs/billing/data-retention.md", "judge": "correct", "refused": false, "citations": [ { "source": "handbook#exports", "cohort": "internal" }, { "source": "handbook#data-retention", "cohort": "internal" } ] }
   ]
 }
-

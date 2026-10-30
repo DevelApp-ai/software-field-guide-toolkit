@@ -18,4 +18,3 @@
     { "id": "r4", "cohort": "region-b", "input": "Retrieve the sources for: how do I export my order history?", "expected": "the handbook pages on exports and data retention" }
   ]
 }
-
