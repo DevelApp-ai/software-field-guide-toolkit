@@ -7,6 +7,7 @@ using Sfg.Toolkit.Core.CodeTruth;
 using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.EvalHarness;
 using Sfg.Toolkit.BiasProbe;
+using Sfg.Toolkit.DrillHarness;
 using Sfg.Toolkit.MigrationLint;
 using Sfg.Toolkit.DoraMetrics;
 using Sfg.Toolkit.ReviewCalib;
@@ -45,8 +46,10 @@ try
             return RunReviewCalib(args[1..]);
         case "bias-probe":
             return RunBiasProbe(args[1..]);
+        case "drills":
+            return RunDrills(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.10.0");
+            Console.WriteLine("sfg 0.11.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -350,6 +353,30 @@ static int RunBiasProbe(string[] args)
     return strict && report.Errors > 0 ? 1 : 0;
 }
 
+static int RunDrills(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config") ?? Path.Combine(root, "drills.json");
+    var evidencePath = Option(args, "--evidence");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "drills");
+    var strict = HasFlag(args, "--strict");
+
+    var config = DrillHarnessConfig.Load(configPath);
+    var scenarios = DrillFiles.LoadScenarios(config.ScenariosPath);
+    var evidence = DrillFiles.LoadEvidence(evidencePath ?? config.EvidencePath);
+    var report = DrillAnalyzer.Analyze(config, scenarios, evidence, evidencePath ?? config.EvidencePath);
+
+    WriteFile(outDir, "drills.md", DrillHarnessRenderer.Markdown(config, report));
+    WriteFile(outDir, "drills.json", DrillHarnessRenderer.Json(config, report));
+
+    Console.WriteLine($"drills: suite {config.Name}, drill {report.Drill}, " +
+                      $"{report.Freshness.Count} scenario(s), {report.Clocks.Count} drill record(s), " +
+                      $"{report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings), " +
+                      $"asOf {report.AsOf:yyyy-MM-dd}");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "drills.md")}, {Path.Combine(outDir, "drills.json")}");
+    return strict && report.Errors > 0 ? 1 : 0;
+}
+
 static string RequiredRoot(string[] args)
 {
     string? root = null;
@@ -514,6 +541,18 @@ static void PrintHelp()
               (commit it deliberately); --strict exits non-zero on
               error-severity findings. Emits bias-probe.md and
               bias-probe.json.
+
+          sfg drills <root> [--config <drills.json>]
+              [--evidence <drill-evidence.json>] [--out <DIR>] [--strict]
+
+              Judges a recorded drill export post-hoc against the committed
+              scenario catalog (#81): alerts inside their escalation clocks,
+              restores within RTO, RPO respected, expected telemetry signals
+              recorded, participants and versions named, and every scenario
+              drilled fresh — a DR plan on paper and a rehearsed one must not
+              look alike. Judges recorded evidence only; it never injects
+              failures. --strict exits non-zero on error-severity findings.
+              Emits drills.md and drills.json.
 
           sfg --version
 
