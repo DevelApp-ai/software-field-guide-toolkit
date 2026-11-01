@@ -398,7 +398,7 @@ public sealed class DoraMetricsTests : IDisposable
         var config = new DoraConfig { Root = _app.Root };
         var export = DoraAnalyzer.Load(config);
         var markdown = DoraRenderer.Markdown(config, export, _app.Extract());
-        Assert.Contains("sfg dora 0.11.0", markdown);
+        Assert.Contains("sfg dora 0.12.0", markdown);
         Assert.Contains("dora-definitions-v1", markdown);
         Assert.Contains("✅ Clean export", markdown);
         Assert.Contains("deployment → change", markdown);
@@ -416,7 +416,7 @@ public sealed class DoraMetricsTests : IDisposable
         var json = DoraRenderer.Json(config, export, _app.Extract());
         using var document = System.Text.Json.JsonDocument.Parse(json);
         var root = document.RootElement;
-        Assert.Equal("sfg dora 0.11.0", root.GetProperty("generator").GetString());
+        Assert.Equal("sfg dora 0.12.0", root.GetProperty("generator").GetString());
         Assert.Equal("dora-definitions-v1", root.GetProperty("definitionVersion").GetString());
         Assert.Equal("week", root.GetProperty("period").GetString());
         Assert.Equal("example/api", root.GetProperty("repository").GetString());
