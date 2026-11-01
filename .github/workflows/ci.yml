@@ -1109,3 +1109,107 @@ jobs:
           name: sfg-drills-board
           path: drills-good/
           if-no-files-found: error
+
+  demo-unitecon:
+    name: unit economics extractor bites on the UnitEconApp seeded estate
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sfg-tool-package
+          path: packages
+
+      - name: Install sfg tool
+        run: |
+          dotnet tool install Sfg.Tool --tool-path .tools --add-source packages
+          ./.tools/sfg --version
+
+      # unitecon-good/, unitecon-rerun/, unitecon-dangling/, unitecon-unbilled/,
+      # unitecon-unpriced/, unitecon-spike/ are generated output and never
+      # committed; the conformant control board is uploaded as the artifact.
+      - name: Control run is clean with every join verified
+        run: |
+          set -eu
+          ./.tools/sfg unit-econ demo/UnitEconApp --out unitecon-good
+          grep -q "Clean run" unitecon-good/unit-econ.md
+          grep -q "SEEDED estate" unitecon-good/unit-econ.md
+          grep -q "Summary: 3 tenant(s), 3 service(s), 2 period(s), 6 spend row(s), 18 cost-per-request row(s), 0 finding(s)" unitecon-good/unit-econ.md
+          test "$(jq '.errors' unitecon-good/unit-econ.json)" -eq 0
+          test "$(jq '.warnings' unitecon-good/unit-econ.json)" -eq 0
+
+      - name: Determinism - regenerate and compare byte-identical
+        run: |
+          set -eu
+          ./.tools/sfg unit-econ demo/UnitEconApp --out unitecon-rerun
+          cmp unitecon-good/unit-econ.md unitecon-rerun/unit-econ.md
+          cmp unitecon-good/unit-econ.json unitecon-rerun/unit-econ.json
+
+      - name: The gate bites on an allocation rule for an unbilled service
+        run: |
+          set +e
+          ./.tools/sfg unit-econ demo/UnitEconApp --allocations demo/broken/allocations.Dangling.json --out unitecon-dangling --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the dangling allocation passed --strict"; exit 1
+          fi
+          grep -q "unitecon/dangling-allocation" unitecon-dangling/unit-econ.md
+          grep -q "an allocation without a cost is a dangling join" unitecon-dangling/unit-econ.md
+          grep -qE ':[0-9]+`' unitecon-dangling/unit-econ.md
+          test "$(jq '.errors' unitecon-dangling/unit-econ.json)" -eq 1
+
+      - name: The gate bites on telemetry for a service that is never billed
+        run: |
+          set +e
+          ./.tools/sfg unit-econ demo/UnitEconApp --telemetry demo/broken/telemetry.Unbilled.json --out unitecon-unbilled --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the unbilled service passed --strict"; exit 1
+          fi
+          grep -q "unitecon/unbilled-service" unitecon-unbilled/unit-econ.md
+          grep -q "served but never billed" unitecon-unbilled/unit-econ.md
+          grep -qE ':[0-9]+`' unitecon-unbilled/unit-econ.md
+          test "$(jq '.errors' unitecon-unbilled/unit-econ.json)" -eq 1
+
+      - name: The gate bites on a tenant that no allocation rule prices
+        run: |
+          set +e
+          ./.tools/sfg unit-econ demo/UnitEconApp --telemetry demo/broken/telemetry.Unpriced.json --out unitecon-unpriced --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the unpriced tenant passed --strict"; exit 1
+          fi
+          grep -q "unitecon/unpriced-tenant" unitecon-unpriced/unit-econ.md
+          grep -q "requests without a price" unitecon-unpriced/unit-econ.md
+          grep -qE ':[0-9]+`' unitecon-unpriced/unit-econ.md
+          test "$(jq '.errors' unitecon-unpriced/unit-econ.json)" -eq 1
+
+      - name: The gate bites on a spend spike with per-tenant evidence
+        run: |
+          set +e
+          ./.tools/sfg unit-econ demo/UnitEconApp --billing demo/broken/billing.SpendSpike.json --out unitecon-spike --strict > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "GATE DID NOT BITE: the spend spike passed --strict"; exit 1
+          fi
+          grep -q "unitecon/spend-spike" unitecon-spike/unit-econ.md
+          grep -q "tenant 'acme' spent EUR 694.00 in 2026-09 — over its EUR 650.00 budget" unitecon-spike/unit-econ.md
+          grep -q "unit-econ.json:10" unitecon-spike/unit-econ.md
+          grep -qE ':[0-9]+`' unitecon-spike/unit-econ.md
+          test "$(jq '.errors' unitecon-spike/unit-econ.json)" -eq 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfg-unitecon-board
+          path: unitecon-good/
+          if-no-files-found: error
