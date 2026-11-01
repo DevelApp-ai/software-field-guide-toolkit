@@ -3,7 +3,7 @@
 Small in-repo demonstration estates for the `sfg` commands. Each one exists so CI can prove
 its command **bites**: the good app passes, and a deliberately regressed variant fails with
 the cited evidence. Generated output (`probes-*`, `cockpit-*`, `events-*`, `planaudit-*`,
-`eval-*`, `reviewcalib-*`, `biasprobe-*`, `drills-*`) is never committed — CI regenerates it and uploads the manifest/board as the
+`eval-*`, `reviewcalib-*`, `biasprobe-*`, `drills-*`, `unitecon-*`) is never committed — CI regenerates it and uploads the manifest/board as the
 workflow artifact.
 
 ## [EventApp](EventApp) — `sfg events` (#60)
@@ -133,3 +133,19 @@ alert** (`drill/late-alert` — d3 alerts 120 s over its 60 s clock, the #81 don
 **never-drilled scenario** (`drill/never-drilled` — d4 vanishes from the export: a paper
 plan caught), a **missing expected signal** (`drill/signal-missing`), and a **stale
 scenario** (`drill/stale-scenario` — 283 days old, advisory warning, exit 0 by design).
+
+## [UnitEconApp](UnitEconApp) — `sfg unit-econ` (#83)
+
+A **SEEDED** cloud unit-economics estate (labeled in the README and on every board — no real
+billing history backs these numbers): three tenants (acme, globex, initech) on three services
+(api, render, pipeline) across two months, with each service's allocation shares summing to
+exactly one, additive request telemetry per month, and every tenant inside its declared budget.
+The extractor joins recorded exports only — it never calls a live cloud API. CI runs the
+control clean (every join verified, byte-identical on regeneration), then asserts four
+deliberately broken variants from [`broken/`](broken) bite (via `--billing`/`--allocations`/
+`--telemetry`): a **dangling allocation** (`unitecon/dangling-allocation` — an extra rule prices
+the never-billed `search`, the #83 done-when), an **unbilled service**
+(`unitecon/unbilled-service` — telemetry serves `search`), an **unpriced tenant**
+(`unitecon/unpriced-tenant` — `hooli` serves requests no rule prices), and a **spend spike**
+(`unitecon/spend-spike` — api's September line jumps 840 → 1000, pushing only acme over its 650
+budget with per-tenant evidence).
