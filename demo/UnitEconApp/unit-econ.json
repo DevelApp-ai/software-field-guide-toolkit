@@ -1,0 +1,14 @@
+{
+  "name": "seeded-unit-economics",
+  "seeded": true,
+  "currency": "EUR",
+  "granularity": "month",
+  "billing": "billing.json",
+  "allocations": "allocations.json",
+  "telemetry": "telemetry.json",
+  "budgets": {
+    "acme": 650,
+    "globex": 550,
+    "initech": 500
+  }
+}

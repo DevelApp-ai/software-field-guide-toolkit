@@ -191,7 +191,7 @@ public sealed class BiasProbeTests : IDisposable
     {
         _app.Write("baseline.low.json", """
             {
-              "generator": "sfg bias-probe 0.11.0",
+              "generator": "sfg bias-probe 0.12.0",
               "suite": "support-bias-probe",
               "consistency": { "value": 0.5, "pairs": { "q1": 1, "q2": 1, "q3": 1, "q4": 1 } },
               "metrics": { "faithfulness": { "value": 0.9, "cases": {}, "cohorts": {
@@ -359,7 +359,7 @@ public sealed class BiasProbeTests : IDisposable
     {
         _app.Write("baseline.improved.json", """
             {
-              "generator": "sfg bias-probe 0.11.0",
+              "generator": "sfg bias-probe 0.12.0",
               "suite": "support-bias-probe",
               "consistency": { "value": 1, "pairs": { "q1": 1, "q2": 1, "q3": 1, "q4": 1 } },
               "metrics": { "faithfulness": { "value": 0.5, "cases": {
@@ -398,7 +398,7 @@ public sealed class BiasProbeTests : IDisposable
     {
         _app.Write("baseline.empty-metrics.json", """
             {
-              "generator": "sfg bias-probe 0.11.0",
+              "generator": "sfg bias-probe 0.12.0",
               "suite": "support-bias-probe",
               "consistency": { "value": 1, "pairs": { "q1": 1, "q2": 1, "q3": 1, "q4": 1 } },
               "metrics": {}
@@ -431,7 +431,7 @@ public sealed class BiasProbeTests : IDisposable
     {
         _app.Write("baseline.north.json", """
             {
-              "generator": "sfg bias-probe 0.11.0",
+              "generator": "sfg bias-probe 0.12.0",
               "suite": "support-bias-probe",
               "consistency": { "value": 1, "pairs": { "q1": 1, "q2": 1, "q3": 1, "q4": 1 } },
               "metrics": { "faithfulness": { "value": 0.9, "cases": {}, "cohorts": {
@@ -1162,7 +1162,7 @@ public sealed class BiasProbeTests : IDisposable
     {
         _app.Write("baseline.bad-pair.json", """
             {
-              "generator": "sfg bias-probe 0.11.0",
+              "generator": "sfg bias-probe 0.12.0",
               "suite": "support-bias-probe",
               "consistency": { "value": 1, "pairs": { "q1": 2 } },
               "metrics": {}
@@ -1215,7 +1215,7 @@ public sealed class BiasProbeTests : IDisposable
         var first = BiasProbeRenderer.Json(config, report);
         var second = BiasProbeRenderer.Json(config, report);
         Assert.Equal(first, second);
-        Assert.Contains("sfg bias-probe 0.11.0", first);
+        Assert.Contains("sfg bias-probe 0.12.0", first);
         Assert.Contains("\"errors\": 0", first);
         Assert.Contains("\"warnings\": 0", first);
     }
@@ -1228,7 +1228,7 @@ public sealed class BiasProbeTests : IDisposable
         var first = BiasProbeRenderer.BaselineJson(config, report);
         var second = BiasProbeRenderer.BaselineJson(config, report);
         Assert.Equal(first, second);
-        Assert.Contains("\"generator\": \"sfg bias-probe 0.11.0\"", first);
+        Assert.Contains("\"generator\": \"sfg bias-probe 0.12.0\"", first);
         Assert.Contains("\"consistency\"", first);
         Assert.Contains("\"q1\": 1", first);
         Assert.Contains("\"faithfulness\"", first);

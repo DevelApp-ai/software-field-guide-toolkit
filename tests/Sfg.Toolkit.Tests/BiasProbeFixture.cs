@@ -48,7 +48,7 @@ public sealed class BiasProbeFixture : IDisposable
         Write("results.json", Compose(BaseResults));
         Write("baseline.json", """
             {
-              "generator": "sfg bias-probe 0.11.0",
+              "generator": "sfg bias-probe 0.12.0",
               "suite": "support-bias-probe",
               "consistency": {
                 "value": 1,

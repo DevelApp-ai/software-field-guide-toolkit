@@ -8,6 +8,7 @@ using Sfg.Toolkit.PlanAudit;
 using Sfg.Toolkit.EvalHarness;
 using Sfg.Toolkit.BiasProbe;
 using Sfg.Toolkit.DrillHarness;
+using Sfg.Toolkit.UnitEcon;
 using Sfg.Toolkit.MigrationLint;
 using Sfg.Toolkit.DoraMetrics;
 using Sfg.Toolkit.ReviewCalib;
@@ -48,8 +49,10 @@ try
             return RunBiasProbe(args[1..]);
         case "drills":
             return RunDrills(args[1..]);
+        case "unit-econ":
+            return RunUnitEcon(args[1..]);
         case "--version":
-            Console.WriteLine("sfg 0.11.0");
+            Console.WriteLine("sfg 0.12.0");
             return 0;
         default:
             Console.Error.WriteLine($"unknown command: {args[0]}");
@@ -377,12 +380,46 @@ static int RunDrills(string[] args)
     return strict && report.Errors > 0 ? 1 : 0;
 }
 
+static int RunUnitEcon(string[] args)
+{
+    var root = RequiredRoot(args);
+    var configPath = Option(args, "--config") ?? Path.Combine(root, "unit-econ.json");
+    var billingPath = Option(args, "--billing");
+    var allocationsPath = Option(args, "--allocations");
+    var telemetryPath = Option(args, "--telemetry");
+    var outDir = Option(args, "--out") ?? Path.Combine("sfg-out", "unit-econ");
+    var strict = HasFlag(args, "--strict");
+
+    var config = UnitEconConfig.Load(configPath);
+    var billing = UnitEconFiles.LoadBilling(billingPath ?? config.BillingPath, config.Currency);
+    var allocations = UnitEconFiles.LoadAllocations(allocationsPath ?? config.AllocationsPath);
+    var telemetry = UnitEconFiles.LoadTelemetry(telemetryPath ?? config.TelemetryPath);
+    var report = UnitEconAnalyzer.Analyze(
+        config,
+        billing,
+        allocations,
+        telemetry,
+        billingPath ?? config.BillingPath,
+        allocationsPath ?? config.AllocationsPath,
+        telemetryPath ?? config.TelemetryPath);
+
+    WriteFile(outDir, "unit-econ.md", UnitEconRenderer.Markdown(config, report));
+    WriteFile(outDir, "unit-econ.json", UnitEconRenderer.Json(config, report));
+
+    Console.WriteLine($"unit-econ: estate {config.Name}, " +
+                      $"{report.Tenants} tenant(s), {report.Services} service(s), {report.Periods} period(s), " +
+                      $"{report.Spend.Count} spend row(s), {report.CostPerRequest.Count} cost-per-request row(s), " +
+                      $"{report.Findings.Count} finding(s) ({report.Errors} errors, {report.Warnings} warnings)");
+    Console.WriteLine($"outputs: {Path.Combine(outDir, "unit-econ.md")}, {Path.Combine(outDir, "unit-econ.json")}");
+    return strict && report.Errors > 0 ? 1 : 0;
+}
+
 static string RequiredRoot(string[] args)
 {
     string? root = null;
     for (var i = 0; i < args.Length; i++)
     {
-        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results" or "--gates" or "--events")
+        if (args[i] is "--config" or "--out" or "--evidence" or "--spec-diff" or "--code-diff" or "--semantic" or "--results" or "--gates" or "--events" or "--billing" or "--allocations" or "--telemetry")
         {
             i++;
             continue;
@@ -553,6 +590,24 @@ static void PrintHelp()
               look alike. Judges recorded evidence only; it never injects
               failures. --strict exits non-zero on error-severity findings.
               Emits drills.md and drills.json.
+
+          sfg unit-econ <root> [--config <unit-econ.json>]
+                            [--billing <billing.json>]
+                            [--allocations <allocations.json>]
+                            [--telemetry <telemetry.json>] [--out <DIR>]
+                            [--strict]
+              Joins a recorded billing export to per-tenant allocation shares
+              and recorded request telemetry (#83): cost-per-request trends
+              per tenant and service, spend against declared per-period
+              budgets, and a budget spike with per-tenant evidence. Every
+              join is verified in both directions (#68 discipline): a rule
+              must point at a billed service, a billed service must reach a
+              tenant, a served service must be billed, a served tenant must
+              be priced, and shares must sum to one. Trends, never scores —
+              tenants are not ranked. Recorded exports only, never a live
+              cloud API; a seeded estate is labeled SEEDED on every board.
+              --strict exits non-zero on error-severity findings. Emits
+              unit-econ.md and unit-econ.json.
 
           sfg --version
 

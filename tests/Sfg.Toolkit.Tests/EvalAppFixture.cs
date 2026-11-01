@@ -42,7 +42,7 @@ public sealed class EvalAppFixture : IDisposable
             """);
         Write("baseline.json", """
             {
-              "generator": "sfg eval 0.11.0",
+              "generator": "sfg eval 0.12.0",
               "suite": "docs-eval-test",
               "metrics": {
                 "recallAt3": { "value": 0.8333, "cases": {

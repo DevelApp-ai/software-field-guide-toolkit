@@ -11,7 +11,7 @@ namespace Sfg.Toolkit.DrillHarness;
 /// </summary>
 public static class DrillHarnessRenderer
 {
-    public const string Generator = "sfg drills 0.11.0";
+    public const string Generator = "sfg drills 0.12.0";
 
     public static string Markdown(DrillHarnessConfig config, DrillReport report)
     {
