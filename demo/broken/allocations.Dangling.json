@@ -1,0 +1,15 @@
+{
+  "manifest": "tenant-allocation-v3",
+  "rules": [
+    { "tenant": "acme", "service": "api", "share": 0.50 },
+    { "tenant": "globex", "service": "api", "share": 0.30 },
+    { "tenant": "initech", "service": "api", "share": 0.20 },
+    { "tenant": "acme", "service": "render", "share": 0.40 },
+    { "tenant": "globex", "service": "render", "share": 0.45 },
+    { "tenant": "initech", "service": "render", "share": 0.15 },
+    { "tenant": "acme", "service": "pipeline", "share": 0.25 },
+    { "tenant": "globex", "service": "pipeline", "share": 0.35 },
+    { "tenant": "initech", "service": "pipeline", "share": 0.40 },
+    { "tenant": "acme", "service": "search", "share": 0.10 }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "export": "billing-export-2026-10",
+  "currency": "EUR",
+  "lineItems": [
+    { "service": "api", "period": "2026-08-01", "amount": 720.00 },
+    { "service": "api", "period": "2026-09-01", "amount": 840.00 },
+    { "service": "render", "period": "2026-08-01", "amount": 300.00 },
+    { "service": "render", "period": "2026-09-01", "amount": 360.00 },
+    { "service": "pipeline", "period": "2026-08-01", "amount": 180.00 },
+    { "service": "pipeline", "period": "2026-09-01", "amount": 200.00 }
+  ]
+}

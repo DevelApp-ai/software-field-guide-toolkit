@@ -415,14 +415,14 @@ public sealed class DrillHarnessTests
     {
         var (markdown, json) = Render();
         using var document = System.Text.Json.JsonDocument.Parse(json);
-        Assert.Equal("sfg drills 0.11.0", document.RootElement.GetProperty("generator").GetString());
+        Assert.Equal("sfg drills 0.12.0", document.RootElement.GetProperty("generator").GetString());
         Assert.Equal("support-drills", document.RootElement.GetProperty("suite").GetString());
         Assert.Equal(3, document.RootElement.GetProperty("freshness").EnumerateObject().Count());
         Assert.Equal(3, document.RootElement.GetProperty("clocks").GetArrayLength());
         Assert.Equal(0, document.RootElement.GetProperty("errors").GetInt32());
         Assert.Equal(0, document.RootElement.GetProperty("warnings").GetInt32());
         Assert.Contains("✅ Clean run:", markdown);
-        Assert.Contains("sfg drills 0.11.0", markdown);
+        Assert.Contains("sfg drills 0.12.0", markdown);
     }
 
     [Fact]
