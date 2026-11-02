@@ -31,7 +31,7 @@ jobs:
       - name: Pack tool
         run: dotnet pack src/sfg -c Release -o packages --no-build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-tool-package
           path: packages/*.nupkg
@@ -46,7 +46,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -94,7 +94,7 @@ jobs:
           cmp demo/erplight/context-map/context-map.json /tmp/rerun/context-map.json
           cmp demo/erplight/context-map/findings.md /tmp/rerun/findings.md
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-demo-output
           path: demo
@@ -111,7 +111,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -163,7 +163,7 @@ jobs:
           fi
           grep -q "Failed TenantProbes.SaveGuardProbes" noguard.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-tenant-probes-manifest
           path: probes-good/manifest.json
@@ -179,7 +179,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -250,7 +250,7 @@ jobs:
           grep -q "SHADOW DRIFT" drifted.log
           grep -q "orders.search" drifted.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-cockpit-board
           path: cockpit-good/
@@ -266,7 +266,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -326,7 +326,7 @@ jobs:
           fi
           grep -q "Failed EventConformance.OutboxProbes" fireandforget.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-events-manifest
           path: events-good/manifest.json
@@ -343,7 +343,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -429,7 +429,7 @@ jobs:
           cmp planaudit-omission/plan-audit.md planaudit-rerun/plan-audit.md
           cmp planaudit-omission/plan-audit.json planaudit-rerun/plan-audit.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-planaudit-board
           path: planaudit-control/
@@ -446,7 +446,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -511,7 +511,7 @@ jobs:
           grep -q "'r99'" eval-unknown/eval.md
           test "$(jq '.errors' eval-unknown/eval.json)" -eq 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-eval-board
           path: eval-good/
@@ -528,7 +528,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -637,7 +637,7 @@ jobs:
           grep -qE ':[0-9]+`' ml-rush/migration-lint.md
           test "$(jq '.errors' ml-rush/migration-lint.json)" -eq 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-migration-lint-board
           path: ml-good/
@@ -654,7 +654,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -763,7 +763,7 @@ jobs:
           grep -qE ':[0-9]+`' dora-v-unevidenced/dora.md
           test "$(jq '.errors' dora-v-unevidenced/dora.json)" -eq 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-dora-board
           path: dora-good/
@@ -780,7 +780,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -858,7 +858,7 @@ jobs:
           test "$(jq '.errors' reviewcalib-v-rubber/review-calib.json)" -eq 1
           test "$(jq '.warnings' reviewcalib-v-rubber/review-calib.json)" -eq 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-reviewcalib-board
           path: reviewcalib-good/
@@ -875,7 +875,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -979,7 +979,7 @@ jobs:
           test "$(jq '.errors' bias-citation-skew/bias-probe.json)" -eq 0
           test "$(jq '.warnings' bias-citation-skew/bias-probe.json)" -eq 2
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-biasprobe-board
           path: bias-good/
@@ -995,7 +995,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -1104,7 +1104,7 @@ jobs:
           test "$(jq '.errors' drills-stale/drills.json)" -eq 0
           test "$(jq '.warnings' drills-stale/drills.json)" -eq 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-drills-board
           path: drills-good/
@@ -1121,7 +1121,7 @@ jobs:
         with:
           dotnet-version: '8.0.4xx'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: sfg-tool-package
           path: packages
@@ -1208,7 +1208,7 @@ jobs:
           grep -qE ':[0-9]+`' unitecon-spike/unit-econ.md
           test "$(jq '.errors' unitecon-spike/unit-econ.json)" -eq 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: sfg-unitecon-board
           path: unitecon-good/
