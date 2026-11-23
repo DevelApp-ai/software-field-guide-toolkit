@@ -1,0 +1,316 @@
+name: release
+
+# Signed release lane for sfg - the repository had no release pipeline at all.
+#
+# A release is cut by pushing a v* tag; workflow_dispatch with a tag input
+# does the same from the default branch head; pull_request runs the full
+# lane EXCEPT signing and release creation (org decisions DevelApp-ai/
+# DevelApp-Repo-Global#38 and #73 - no TOTP window is spent on PR builds,
+# and a PR has no tag to gate against). The tag must match
+# src/sfg/sfg.csproj <Version> (v0.12.0 for the current tree).
+#
+# Assets per release, all checksummed in sfg-<version>-checksums.txt:
+#   sfg-<version>-linux-x64.tar.gz    self-contained single-file binary
+#   sfg-<version>-linux-arm64.tar.gz  self-contained single-file binary
+#   sfg-<version>-win-x64.zip         Authenticode-signed single-file binary
+#   Sfg.Tool.<version>.nupkg          author-signed .NET tool package
+#
+# Signing follows org decisions #38 + #73 exactly (the same wiring proven
+# by Robot-MCP-Service and JsonSchemaBuilder releases): the win-x64 binary
+# is Authenticode-signed BEFORE the zip is built so the zip payload is
+# signed, then verified fail-closed; the tool package is signed with
+# dotnet nuget sign --certificate-fingerprint (SHA-256 fingerprint
+# interface, decision #73 amendment) and verified with dotnet nuget verify.
+# Any failed verification blocks the release - unsigned assets are never
+# attached.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (must be v<major>.<minor>.<patch>, e.g. v0.12.0)'
+        required: true
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: gate, build, test, pack, publish linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - name: Read tool version
+        id: ver
+        run: |
+          V=$(grep -oPm1 '(?<=<Version>)[^<]+' src/sfg/sfg.csproj)
+          if [ -z "$V" ]; then echo "no <Version> found in src/sfg/sfg.csproj"; exit 1; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve tag
+        id: tag
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          TAG=""
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then TAG="$GITHUB_REF_NAME"; fi
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then TAG="$DISPATCH_TAG"; fi
+          if [ -n "$TAG" ] && ! echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "refusing tag '$TAG': expected v<major>.<minor>.<patch>"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Version gate
+        env:
+          SFG_VERSION: ${{ steps.ver.outputs.version }}
+          SFG_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if [ -n "$SFG_TAG" ] && [ "v$SFG_VERSION" != "$SFG_TAG" ]; then
+            echo "tag $SFG_TAG does not match the csproj Version $SFG_VERSION - bump src/sfg/sfg.csproj or fix the tag"
+            exit 1
+          fi
+
+      - name: Restore
+        run: dotnet restore Sfg.Toolkit.sln
+
+      - name: Build
+        run: dotnet build Sfg.Toolkit.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Sfg.Toolkit.sln -c Release --no-build
+
+      - name: Pack tool
+        run: dotnet pack src/sfg -c Release -o dist --no-build
+
+      - name: Publish linux-x64 single-file binary
+        run: dotnet publish src/sfg -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o dist/linux-x64
+
+      - name: Publish linux-arm64 single-file binary
+        run: dotnet publish src/sfg -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -o dist/linux-arm64
+
+      - name: Archive linux assets
+        env:
+          SFG_VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          tar -czf "dist/sfg-$SFG_VERSION-linux-x64.tar.gz" -C dist/linux-x64 .
+          tar -czf "dist/sfg-$SFG_VERSION-linux-arm64.tar.gz" -C dist/linux-arm64 .
+          rm -rf dist/linux-x64 dist/linux-arm64
+
+      - name: Upload linux assets
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-release-assets
+          path: dist/sfg-*.tar.gz
+          if-no-files-found: error
+
+      - name: Upload tool package
+        uses: actions/upload-artifact@v6
+        with:
+          name: tool-package-unsigned
+          path: dist/*.nupkg
+          if-no-files-found: error
+
+  sign:
+    name: sign win-x64 binary and tool package
+    needs: build
+    if: needs.build.outputs.tag != ''
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      SFG_VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.4xx'
+
+      - name: Publish win-x64 single-file binary
+        run: >
+          dotnet publish src/sfg -c Release -r win-x64
+          --self-contained -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          -o dist/win-x64
+
+      # Fail fast BEFORE the SimplySign login consumes a TOTP window.
+      # Values are never echoed. These org secrets must be allowlisted for
+      # this repository (org decision #38).
+      - name: Validate signing inputs
+        shell: pwsh
+        env:
+          CERTUM_SIMPLYSIGN_USERID: ${{ secrets.CERTUM_SIMPLYSIGN_USERID }}
+          CERTUM_SIMPLYSIGN_OTP_URI: ${{ secrets.CERTUM_SIMPLYSIGN_OTP_URI }}
+          CERTUM_THUMBPRINT: ${{ secrets.CODE_SIGNING_CERT_THUMBPRINT }}
+          CERTUM_FINGERPRINT_SHA256: ${{ secrets.CODE_SIGNING_CERT_FINGERPRINT_SHA256 }}
+        run: |
+          foreach ($name in @('CERTUM_SIMPLYSIGN_USERID','CERTUM_SIMPLYSIGN_OTP_URI','CERTUM_THUMBPRINT','CERTUM_FINGERPRINT_SHA256')) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Missing signing input: $name (org secrets setup, decision #38)"
+            }
+          }
+          $tp = $env:CERTUM_THUMBPRINT -replace '\s',''
+          if ($tp -notmatch '^[0-9A-Fa-f]{40}$') { throw 'Certificate thumbprint must be exactly 40 hex characters (CODE_SIGNING_CERT_THUMBPRINT org secret).' }
+          $fp = $env:CERTUM_FINGERPRINT_SHA256 -replace '\s',''
+          if ($fp -notmatch '^[0-9A-Fa-f]{64}$') { throw 'Certificate fingerprint must be exactly 64 hex characters (CODE_SIGNING_CERT_FINGERPRINT_SHA256 org secret, decision #73 amendment).' }
+          $uri = $null
+          if (-not [Uri]::TryCreate($env:CERTUM_SIMPLYSIGN_OTP_URI, [UriKind]::Absolute, [ref]$uri) -or
+              $uri.Scheme -ne 'otpauth' -or $uri.Host -ne 'totp' -or
+              $uri.Query -notmatch '[?&]secret=[A-Za-z2-7]+=*(&|$)') {
+            throw 'CERTUM_SIMPLYSIGN_OTP_URI must be the full otpauth://totp provisioning URI (org secrets setup, decision #38).'
+          }
+
+      # Pinned by full commit SHA; proven by the LocalTaskhandler signing
+      # test (run 43089090840, 2026-11-11), shaztechio/bunyi-app #171, and
+      # Robot-MCP-Service / JsonSchemaBuilder releases. Never sees
+      # CERTUM_SIMPLYSIGN_PASSWORD - that secret stays dormant.
+      - name: Connect to Certum SimplySign
+        uses: dismine/windows-app-signing-setup-action@89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64
+        with:
+          certum-username: ${{ secrets.CERTUM_SIMPLYSIGN_USERID }}
+          certum-otp-uri: ${{ secrets.CERTUM_SIMPLYSIGN_OTP_URI }}
+          certum-key-id: ${{ secrets.CODE_SIGNING_CERT_THUMBPRINT }}
+          capture-diagnostics: 'false'
+
+      - name: Sign sfg.exe
+        shell: pwsh
+        env:
+          CERTUM_KEY_ID: ${{ secrets.CODE_SIGNING_CERT_THUMBPRINT }}
+        run: ./scripts/sign-files.ps1 -Path 'dist/win-x64/sfg.exe'
+
+      - name: Download tool package
+        uses: actions/download-artifact@v7
+        with:
+          name: tool-package-unsigned
+          path: nupkgs/
+
+      - name: Sign tool package
+        shell: pwsh
+        env:
+          CERTUM_FINGERPRINT_SHA256: ${{ secrets.CODE_SIGNING_CERT_FINGERPRINT_SHA256 }}
+        run: |
+          $fp = ($env:CERTUM_FINGERPRINT_SHA256 -replace '\s','').ToUpperInvariant()
+          $packages = @(Get-ChildItem nupkgs/*.nupkg)
+          if (-not $packages.Count) { throw 'No package found to sign.' }
+          foreach ($p in $packages) {
+            dotnet nuget sign $p.FullName --certificate-fingerprint $fp --timestamper http://time.certum.pl
+            if ($LASTEXITCODE -ne 0) { throw "Signing failed (exit $LASTEXITCODE): $($p.Name)" }
+          }
+
+      - name: Verify tool package signature
+        shell: pwsh
+        run: |
+          foreach ($p in @(Get-ChildItem nupkgs/*.nupkg)) {
+            dotnet nuget verify $p.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Signature verification failed (exit $LASTEXITCODE): $($p.Name)" }
+          }
+
+      - name: Package win-x64 zip
+        run: |
+          Remove-Item dist/win-x64/*.pdb -ErrorAction SilentlyContinue
+          Compress-Archive -Path "dist/win-x64/*" -DestinationPath "sfg-$($env:SFG_VERSION)-win-x64.zip" -CompressionLevel Optimal
+
+      # Stage the signed nupkg next to the zip at workspace root: upload-artifact
+      # roots multi-path uploads at the least common ancestor, so the package
+      # would otherwise nest as nupkgs/*.nupkg inside the artifact.
+      - name: Stage signed assets
+        shell: pwsh
+        run: Copy-Item nupkgs/*.nupkg -Destination . -Force
+
+      - name: Upload signed release assets
+        uses: actions/upload-artifact@v6
+        with:
+          name: signed-release-assets
+          path: |
+            sfg-*-win-x64.zip
+            Sfg.Tool.*.nupkg
+          if-no-files-found: error
+
+  release:
+    name: checksums and GitHub release
+    needs: [build, sign]
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.sign.result == 'success' || needs.sign.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SFG_VERSION: ${{ needs.build.outputs.version }}
+      SFG_TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - name: Download linux assets
+        uses: actions/download-artifact@v7
+        with:
+          name: linux-release-assets
+          path: dist/
+
+      - name: Download signed release assets
+        if: needs.sign.result == 'success'
+        uses: actions/download-artifact@v7
+        with:
+          name: signed-release-assets
+          path: dist/
+
+      - name: Download unsigned tool package
+        if: needs.sign.result != 'success'
+        uses: actions/download-artifact@v7
+        with:
+          name: tool-package-unsigned
+          path: dist/
+
+      - name: Write checksums
+        run: |
+          cd dist
+          ls -1 sfg-* Sfg.Tool.* | sort
+          test "$(ls -1 sfg-* Sfg.Tool.* | wc -l)" -ge 2
+          sha256sum sfg-* Sfg.Tool.* > "sfg-$SFG_VERSION-checksums.txt"
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-assets
+          path: dist/
+          if-no-files-found: error
+
+      - name: Create the signed release
+        if: env.SFG_TAG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          ls -1
+          # fail closed: the release must carry the full signed asset set
+          test -f "sfg-$SFG_VERSION-linux-x64.tar.gz"
+          test -f "sfg-$SFG_VERSION-linux-arm64.tar.gz"
+          test -f "sfg-$SFG_VERSION-win-x64.zip"
+          test -f "Sfg.Tool.$SFG_VERSION.nupkg"
+          gh release create "$SFG_TAG" \
+            sfg-$SFG_VERSION-linux-x64.tar.gz \
+            sfg-$SFG_VERSION-linux-arm64.tar.gz \
+            sfg-$SFG_VERSION-win-x64.zip \
+            Sfg.Tool.$SFG_VERSION.nupkg \
+            sfg-$SFG_VERSION-checksums.txt \
+            --title "sfg $SFG_TAG" \
+            --notes "Signed release (Certum code signing, org decisions #38 + #73). The win-x64 binary is Authenticode-signed (RFC 3161 timestamp), the Sfg.Tool package is author-signed, and sfg-$SFG_VERSION-checksums.txt carries the SHA-256 of every asset. Verify the package with: dotnet nuget verify Sfg.Tool.$SFG_VERSION.nupkg" \
+            || gh release upload "$SFG_TAG" \
+               sfg-$SFG_VERSION-linux-x64.tar.gz \
+               sfg-$SFG_VERSION-linux-arm64.tar.gz \
+               sfg-$SFG_VERSION-win-x64.zip \
+               Sfg.Tool.$SFG_VERSION.nupkg \
+               sfg-$SFG_VERSION-checksums.txt \
+               --clobber
