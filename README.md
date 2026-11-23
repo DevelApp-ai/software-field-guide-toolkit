@@ -772,6 +772,12 @@ The unit-econ demo is in-repo too: [`demo/UnitEconApp`](demo/README.md), a **SEE
 
 See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / boundary doctor), #55 (seam ledger / evidence linter), #58 (tenant-isolation probe generator), #56 (strangler-fig migration cockpit), #60 (event contract conformance harness), #64 (plan-conformance auditor), #66 (LLM evaluation harness runner and baseline gate), #67 (expand-migrate-contract migration linter), #68 (DORA four-key extractor), #77 (reviewer calibration harness).
 
+## Documentation
+
+The documentation site for this repository is published on GitHub Pages at <https://develapp-ai.github.io/software-field-guide-toolkit/>. It is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) from the pages under `docs/` (see `mkdocs.yml`); the README remains the source of truth for the tool, and the site repackages it page-per-command.
+
+The `docs-pages` workflow builds the site with `mkdocs build --strict` on every pull request and deploys it to GitHub Pages on every push to `main` (repository Settings → Pages must use the *GitHub Actions* source once).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

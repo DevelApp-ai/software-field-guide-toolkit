@@ -1,0 +1,52 @@
+site_name: Software Field Guide Toolkit
+site_description: Companion tools for The Software Field Guide — sfg, the .NET CLI that makes the book's architecture and design disciplines executable.
+repo_url: https://github.com/DevelApp-ai/software-field-guide-toolkit
+repo_name: DevelApp-ai/software-field-guide-toolkit
+edit_uri: edit/main/docs/
+
+strict: true
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.top
+
+markdown_extensions:
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Commands:
+      - context-map: commands/context-map.md
+      - seam-ledger: commands/seam-ledger.md
+      - tenant-probes: commands/tenant-probes.md
+      - cockpit: commands/cockpit.md
+      - events: commands/events.md
+      - plan-audit: commands/plan-audit.md
+      - eval: commands/eval.md
+      - migration-lint: commands/migration-lint.md
+      - dora: commands/dora.md
+      - review-calib: commands/review-calib.md
+      - bias-probe: commands/bias-probe.md
+      - drills: commands/drills.md
+      - unit-econ: commands/unit-econ.md
+  - Honest evaluation status: honest-status.md
+  - Demos: demos.md
+  - Roadmap: roadmap.md
+  - License: license.md
