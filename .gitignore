@@ -5,3 +5,4 @@ out/
 .dotnet/
 *.user
 site/
+dist/

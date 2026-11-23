@@ -1,8 +1,8 @@
 # Software Field Guide Toolkit
 
-Companion tools for the book *The Software Field Guide* (DevelApp-ai/software-field-guide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
+Companion tools for the book [*The Software Field Guide*](https://leanpub.com/thesoftwarefieldguide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
-Thirteen commands ship today, mapping to book issues [#54](https://github.com/DevelApp-ai/software-field-guide/issues/54), [#55](https://github.com/DevelApp-ai/software-field-guide/issues/55), [#58](https://github.com/DevelApp-ai/software-field-guide/issues/58), [#56](https://github.com/DevelApp-ai/software-field-guide/issues/56), [#60](https://github.com/DevelApp-ai/software-field-guide/issues/60), [#64](https://github.com/DevelApp-ai/software-field-guide/issues/64), [#66](https://github.com/DevelApp-ai/software-field-guide/issues/66), [#67](https://github.com/DevelApp-ai/software-field-guide/issues/67), [#68](https://github.com/DevelApp-ai/software-field-guide/issues/68), [#77](https://github.com/DevelApp-ai/software-field-guide/issues/77), [#78](https://github.com/DevelApp-ai/software-field-guide/issues/78), [#81](https://github.com/DevelApp-ai/software-field-guide/issues/81), and [#83](https://github.com/DevelApp-ai/software-field-guide/issues/83):
+Thirteen commands ship today, mapping to book issues #54, #55, #58, #56, #60, #64, #66, #67, #68, #77, #78, #81, and #83:
 
 | Command | Book issue | What it does |
 | --- | --- | --- |
@@ -777,6 +777,30 @@ See [docs/roadmap.md](docs/roadmap.md). Implemented: #54 (context mapper / bound
 The documentation site for this repository is published on GitHub Pages at <https://develapp-ai.github.io/software-field-guide-toolkit/>. It is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) from the pages under `docs/` (see `mkdocs.yml`); the README remains the source of truth for the tool, and the site repackages it page-per-command.
 
 The `docs-pages` workflow builds the site with `mkdocs build --strict` on every pull request and deploys it to GitHub Pages on every push to `main` (repository Settings → Pages must use the *GitHub Actions* source once).
+
+## Releases
+
+Releases live at https://github.com/DevelApp-ai/software-field-guide-toolkit/releases and are signed with the DevelApp Certum cloud code signing certificate (Authenticode for the Windows binary, an author signature for the tool package, both RFC 3161-timestamped). Assets per release:
+
+- `sfg-<version>-linux-x64.tar.gz`, `sfg-<version>-linux-arm64.tar.gz` — self-contained single-file binaries
+- `sfg-<version>-win-x64.zip` — the Windows binary, Authenticode-signed
+- `Sfg.Tool.<version>.nupkg` — the .NET tool package, author-signed
+- `sfg-<version>-checksums.txt` — SHA-256 over every asset
+
+Verify after download:
+
+```bash
+sha256sum --check sfg-<version>-checksums.txt
+dotnet nuget verify Sfg.Tool.<version>.nupkg
+```
+
+On Windows, additionally check the extracted `sfg.exe` signature: `Get-AuthenticodeSignature sfg.exe` must report `Valid` (or `signtool verify /pa /all sfg.exe`).
+
+Install the tool package from a release download:
+
+```bash
+dotnet tool install --global Sfg.Tool --add-source <directory containing the nupkg>
+```
 
 ## License
 
