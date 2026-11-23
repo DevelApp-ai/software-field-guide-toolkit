@@ -1,6 +1,6 @@
 # Software Field Guide Toolkit
 
-Companion tools for the book *The Software Field Guide* . `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
+Companion tools for the book [*The Software Field Guide*](https://leanpub.com/thesoftwarefieldguide). `sfg` extracts architecture **truth from code** — not from what the diagrams claim — and renders editable, evidence-cited artifacts.
 
 Thirteen commands ship today, mapping to book issues #54, #55, #58, #56, #60, #64, #66, #67, #68, #77, #78, #81, and #83:
 
